@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>My Cover — display</title>
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/display.css">
+</head>
+<body>
+<div id="stage" class="stage">
+
+  <!-- S1 Gallery p.12 -->
+  <section id="S1" class="screen">
+    <h1 class="s-title">『My Cover』　Gallery</h1>
+    <div class="rows">
+      <div class="row"><div class="track" id="row1"></div></div>
+      <div class="row"><div class="track" id="row2"></div></div>
+    </div>
+    <p class="empty hidden" id="empty">まだジャケットがありません</p>
+  </section>
+
+  <!-- S2 Now Playing p.13 -->
+  <section id="S2" class="screen">
+    <h1 class="s-title">Now Playing</h1>
+    <div class="case"><img class="cover" id="s2-img" alt=""></div>
+    <div class="cd" id="cd"><div class="cd-label" id="cd-label"></div></div>
+    <div class="s2-info">
+      <p class="s2-title track-title"></p>
+      <p class="s2-no" id="s2-no"></p>
+      <div class="s2-bar">
+        <div class="bar"><div class="bar-fill" id="bar-fill"></div><div class="bar-knob" id="bar-knob"></div></div>
+        <div class="time-row"><span id="s2-pos"></span><span id="s2-dur"></span></div>
+      </div>
+      <div class="s2-play"><span class="play-btn big" id="s2-play"></span></div>
+    </div>
+  </section>
+
+  <!-- 初回だけ：自動再生が許可されていない場合のための案内（キオスク起動時は通常表示されない） -->
+  <button id="unlock" class="unlock hidden">クリックして音声を有効にする</button>
+</div>
+
+<script id="config" type="application/json">{{ config_json|safe }}</script>
+<script src="/static/js/common.js"></script>
+<script src="/static/js/stage.js"></script>
+<script src="/static/js/display.js"></script>
+</body>
+</html>

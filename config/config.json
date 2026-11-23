@@ -1,0 +1,47 @@
+{
+  "_comment": "既定の設定。展示PC固有の値は config/config.local.json（Git管理外）で上書きする。秘密情報はここに書かない。",
+
+  "server": { "host": "127.0.0.1", "port": 5000 },
+  "poll_interval_ms": 500,
+
+  "track": {
+    "title": "B7F",
+    "artist": "Usagi Ikeda",
+    "audio_url": "/static/audio/B7F.mp3",
+    "_audio_note": "TODO: 楽曲MP3を static/audio/B7F.mp3 に置く。無い場合は開発用のダミー音源を使う",
+    "chorus_start_sec": null,
+    "chorus_end_sec": null,
+    "_chorus_note": "TODO: サビの開始・終了位置（秒）。未設定の間は 0 秒から s2_fallback_seconds 秒だけ再生する",
+    "s2_fallback_seconds": 30
+  },
+
+  "numbering": {
+    "jacket_digits": 4,
+    "card_digits": 4,
+    "card_start_no": 1,
+    "_note": "TODO: 桁数とカード発行枚数は未決定（デザイン上は No.00000000）"
+  },
+
+  "input": {
+    "max_chars": 200,
+    "_note": "TODO: 文字数上限は未決定（仮の値）"
+  },
+
+  "generation": {
+    "backend": "dummy",
+    "_backend_note": "dummy（フェーズ1）/ openai（フェーズ2で実装）",
+    "dummy_delay_sec": 4,
+    "initial_estimate_sec": 30,
+    "estimate_window": 5
+  },
+
+  "display": {
+    "highlight_new_sec": 600,
+    "_note": "確定からこの秒数の間は大型モニターのギャラリーで目立たせる"
+  },
+
+  "mobile": {
+    "base_url": "http://127.0.0.1:5000/m/",
+    "_note": "スマホ用ページの公開先。フェーズ4で GitHub Pages の URL に切り替える。同じWi-Fiのスマホで試すときは PC の LAN IP にする"
+  }
+}

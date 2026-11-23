@@ -1,0 +1,57 @@
+/* 大型モニター（/display）。黒背景 */
+html, body { background: #000; }
+.screen { position: absolute; inset: 0; display: none; background: #000; }
+.screen.active { display: block; }
+.s-title { position: absolute; left: 88px; top: 52px; margin: 0; font-size: 72px; font-weight: 400; letter-spacing: 0.02em; }
+
+/* S1：2段のジャケットがゆっくり横に流れ続ける */
+.rows { position: absolute; left: 0; right: 0; top: 189px; }
+.row { height: 387px; overflow: hidden; margin-bottom: 55px; }
+.track { display: flex; gap: 16px; width: max-content; animation: flow linear infinite; will-change: transform; }
+.row:nth-child(2) .track { animation-direction: reverse; }
+@keyframes flow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tile { position: relative; width: 381px; height: 387px; flex: none; background: var(--placeholder); }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile .t-no { position: absolute; left: 10px; bottom: 8px; font-size: 16px; text-shadow: 0 0 6px #000; }
+.tile.new { outline: 3px solid #fff; outline-offset: -3px; }
+.tile.new::after {
+  content: "NEW"; position: absolute; right: 10px; top: 10px; padding: 2px 10px;
+  background: #fff; color: #000; font-size: 16px; letter-spacing: .1em;
+}
+.empty { position: absolute; left: 0; right: 0; top: 500px; text-align: center; font-size: 32px; }
+
+/* S2：ケースとCD */
+.case { position: absolute; left: 140px; top: 204px; width: 570px; height: 570px; background: var(--placeholder); box-shadow: 0 0 40px rgba(255,255,255,.08); }
+.cd {
+  position: absolute; left: 360px; top: 390px; width: 570px; height: 570px; border-radius: 50%;
+  background: #000; border: 1px solid #fff; padding: 18px;
+  animation: spin 4s linear infinite; animation-play-state: paused;
+}
+.cd.spinning { animation-play-state: running; }
+.cd-label {
+  width: 100%; height: 100%; border-radius: 50%; border: 1px solid #fff;
+  background-size: cover; background-position: center; background-color: #4f4f4f;
+  position: relative;
+}
+/* 中央の穴 */
+.cd-label::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 122px; height: 122px; margin: -61px 0 0 -61px;
+  border-radius: 50%; background: #000; box-shadow: inset 0 0 0 16px #000, inset 0 0 0 17px #fff;
+}
+/* ディスクの光沢 */
+.cd-label::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,.18), transparent 30%, transparent 50%, rgba(255,255,255,.12), transparent 80%);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.s2-info { position: absolute; left: 1000px; right: 156px; top: 360px; text-align: center; }
+.s2-title { font-size: 56px; margin: 0; }
+.s2-no { font-size: 38px; margin: 16px 0 60px; }
+.s2-bar { text-align: left; }
+.bar { position: relative; height: 2px; background: rgba(255,255,255,.7); margin: 0 0 10px; }
+.bar-fill { position: absolute; left: 0; top: -1px; height: 4px; background: #fff; }
+.bar-knob { position: absolute; top: -9px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; }
+.s2-play { margin-top: 50px; display: flex; justify-content: center; }
+
+.unlock { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); border: 1px solid #fff; padding: 12px 30px; font-size: 20px; }

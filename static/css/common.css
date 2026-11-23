@@ -1,0 +1,106 @@
+/* 共通スタイル。色・書体の値はワイヤーフレームPDFに合わせて調整する */
+@font-face {
+  /* TODO: デザインで使った書体のファイル（ライセンス確認後）を static/fonts/ に置き、ここで指定する */
+  font-family: "MyCoverSerif";
+  src: url("/static/fonts/main.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  --bg: #06061f;
+  --fg: #ffffff;
+  --line: rgba(255, 255, 255, 0.85);
+  --muted: rgba(255, 255, 255, 0.6);
+  --placeholder: #666;
+  --radius: 24px;
+  --font-serif: "MyCoverSerif", "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-serif);
+  letter-spacing: 0.08em;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: inherit;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 40px;
+  font-size: 22px;
+  background: var(--bg);
+  transition: opacity .2s;
+}
+.btn.primary { background: #fff; color: var(--bg); border-color: #fff; }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn:not(:disabled):active { opacity: .7; }
+
+.hidden { display: none !important; }
+
+/* 再生バー（ドラッグ可） */
+.seek {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  margin: 0;
+}
+.seek::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, #fff 0 var(--pct, 0%), rgba(255,255,255,.7) var(--pct, 0%));
+}
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px; margin-top: -9px;
+  border-radius: 50%; background: #fff; border: none;
+}
+.seek:disabled::-webkit-slider-thumb { display: none; }
+
+.time-row { display: flex; justify-content: space-between; font-size: 18px; margin-top: 6px; }
+
+.ph { background: var(--placeholder); }
+
+img.cover { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  transform-origin: center center;
+}
+
+/* 再生ボタン（三角／一時停止） */
+.play-btn { width: 40px; height: 40px; position: relative; }
+.play-btn::before {
+  content: ""; position: absolute; left: 12px; top: 8px;
+  border-style: solid; border-width: 12px 0 12px 20px;
+  border-color: transparent transparent transparent #fff;
+}
+.play-btn.playing::before {
+  left: 11px; top: 9px; width: 6px; height: 22px; border: none;
+  background: #fff; box-shadow: 12px 0 0 #fff;
+}
+.play-btn.big { width: 64px; height: 64px; border: 1px solid var(--line); border-radius: 50%; }
+.play-btn.big::before { left: 24px; top: 19px; }
+.play-btn.big.playing::before { left: 22px; top: 20px; }

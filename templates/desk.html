@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>My Cover — desk</title>
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/desk.css">
+</head>
+<body>
+<div id="stage" class="stage">
+
+  <!-- D1 ホーム（待機） p.1 -->
+  <section id="D1" class="screen">
+    <div class="home-visual">
+      <!-- TODO: キービジュアル画像（static/images/key_visual.jpg など）が用意できたら差し替える -->
+      <div class="kv-placeholder">
+        <span class="kv-sub">滲む、響く。</span>
+        <span class="kv-title">My Cover</span>
+      </div>
+    </div>
+    <div class="home-text">
+      <h1 class="catch">この一曲を、<br>あなただけの<br>一枚に。</h1>
+      <p class="single">配信シングル「<span class="track-title"></span>」</p>
+      <p class="lead">楽曲聴いて感じた色や浮かんだ景色を言葉にしてみてください。<br>あなたの感じたものが<br>世界に一つだけのオリジナルジャケットとして生成されます。</p>
+      <button class="start" data-action="start">Start <span class="arrow"></span></button>
+    </div>
+  </section>
+
+  <!-- D2 About & How To Use（PDFになし。D系に合わせて作成） -->
+  <section id="D2" class="screen">
+    <header class="page-head">
+      <h1>About &amp; How To Use</h1>
+    </header>
+    <div class="about">
+      <div class="about-col">
+        <h2>About</h2>
+        <p>『My Cover』は、音楽コンテンツにおけるオーディエンス・ジャーニーを設計する作品です。</p>
+        <p>全員が同じ一曲「<span class="track-title"></span>」を聴き、そこから浮かんだ言葉をもとに、ジャケットだけが人によって変わります。</p>
+        <p class="credit">武蔵野美術大学 デザイン情報学科3年 大石ゼミ／池田うさぎ</p>
+        <p class="todo-note">TODO: 作品概要の本文は作者が用意する</p>
+      </div>
+      <div class="about-col">
+        <h2>How To Use</h2>
+        <ol>
+          <li>「Start」を押して、曲を聴きながら浮かんだ色や景色、気持ちを言葉にします。</li>
+          <li>「これで生成する」を押すと、あなたの言葉からジャケットが生成されます。</li>
+          <li>気に入るまで作り直せます。決まったら「完成したジャケットから再生する」を押します。</li>
+          <li>正面のモニターで、あなたのジャケットとともに曲が再生されます。</li>
+          <li>スマホ（QRコード）かカードで、ジャケットと曲を持ち帰れます。</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- D3〜D7 Make Your Cover -->
+  <section id="make" class="screen">
+    <header class="page-head">
+      <h1>Make Your Cover</h1>
+      <p class="sub d3-only">同じ一曲でも、思い浮かべる景色は人によって違う。あなたの言葉から一枚のジャケットを作ってみましょう。</p>
+    </header>
+    <nav class="tabs">
+      <div class="tab" data-tab="D3">聴く・言葉にする</div>
+      <div class="tab" data-tab="D4">生成する</div>
+      <div class="tab" data-tab="D5">完成</div>
+      <div class="tab" data-tab="D6">持ち帰る</div>
+      <button class="home-link" data-action="home">HOME</button>
+    </nav>
+
+    <div class="panel">
+      <!-- D3 聴く・言葉にする p.2 -->
+      <div id="D3" class="step">
+        <div class="examples">
+          <h2>作成例</h2>
+          <div class="carousel">
+            <button class="arrow-btn left" id="ex-prev" aria-label="前の作成例">‹</button>
+            <img class="ex-side ex-prev" alt="">
+            <img class="ex-main" alt="">
+            <img class="ex-side ex-next" alt="">
+            <button class="arrow-btn right" id="ex-next" aria-label="次の作成例">›</button>
+          </div>
+          <p class="ex-text"></p>
+        </div>
+        <div class="compose">
+          <div class="player" id="d3-player">
+            <div class="player-title"><button class="play-btn" aria-label="再生"></button><span class="track-title"></span></div>
+            <input type="range" class="seek" min="0" step="0.1" value="0">
+            <div class="time-row"><span class="pos"></span><span class="dur"></span></div>
+          </div>
+          <div class="input-box">
+            <textarea id="input" placeholder="ここに浮かんだ色や景色、気持ちを入力してください。楽曲の再生バーを動かしながら思考してみましょう。"></textarea>
+            <div class="input-foot">
+              <span class="count" id="count"></span>
+              <span class="input-error" id="input-error"></span>
+              <button class="btn primary" id="btn-generate">これで生成する</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D4 生成する p.3 -->
+      <div id="D4" class="step">
+        <div class="pressing ph">
+          <div class="pressing-inner">
+            <p class="pressing-title">Now Pressing...</p>
+            <p class="pressing-sub">ジャケットを生成中</p>
+          </div>
+        </div>
+        <div class="d4-right">
+          <p class="label">あなたの入力した言葉</p>
+          <p class="quote session-input"></p>
+          <p class="countdown" id="countdown">完成まであと <span id="remain">00</span> 秒</p>
+          <div class="gen-error hidden" id="gen-error">
+            <p>うまく生成できませんでした。もう一度試すか、言葉を変えてみてください。</p>
+            <div class="row">
+              <button class="btn" data-action="edit">言葉を変える</button>
+              <button class="btn primary" data-action="retry">もう一度試す</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D5 完成（確認） p.4 -->
+      <div id="D5" class="step">
+        <div class="d5-center">
+          <h2 class="your-cover">Your Cover</h2>
+          <div class="d5-image"><img class="cover" id="d5-img" alt="生成したジャケット"></div>
+          <p class="quote small" id="d5-input"></p>
+        </div>
+        <div class="d5-actions">
+          <button class="btn" data-action="edit">言葉を変えて作り直す</button>
+          <button class="btn" data-action="retry">同じ言葉でもう一度試行</button>
+          <button class="btn primary" data-action="confirm">完成したジャケットから再生する</button>
+          <p class="note">再生すると自動的にギャラリーに追加されます。<br>作り直しはできません。</p>
+        </div>
+      </div>
+
+      <!-- D6 持ち帰る：選択 p.5 -->
+      <div id="D6" class="step">
+        <p class="d6-msg">完成しました。あなたの作ったオリジナルジャケットが正面のモニターで再生されています。　次に、持ち帰り方法を選択してください。</p>
+        <div class="choices">
+          <button class="choice" data-action="get_it_now">
+            <span class="choice-title">Get It Now</span>
+            <span class="choice-desc">スマホで QR コードを読み取り<br>完成したジャケットと楽曲をダウンロードする</span>
+          </button>
+          <button class="choice" data-action="take_it_home">
+            <span class="choice-title">Take It Home</span>
+            <span class="choice-desc">カードで持ち帰る<br>記載のコード /URL からいつでもアクセスできる</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- D7a Get It Now p.6 -->
+      <div id="D7a" class="step">
+        <div class="qr-box"><img id="qr" alt="QRコード"></div>
+        <div class="d7-right">
+          <h2>スマホのカメラで読み取ってください</h2>
+          <ol class="steps">
+            <li>ページを開く</li>
+            <li>表示されたジャケットを長押しすると、画像として保存できます</li>
+            <li>「楽曲をダウンロード」で楽曲ファイルとして保存できます</li>
+          </ol>
+          <button class="btn primary" data-action="finish">終了してホームに戻る</button>
+        </div>
+      </div>
+
+      <!-- D7b Take It Home p.7 -->
+      <div id="D7b" class="step">
+        <div class="card-figure">
+          <div class="card-qr ph"><span>QR コード</span></div>
+          <div class="card-text">
+            <span class="card-brand">My Cover</span>
+            <span class="card-no" id="card-no-figure"></span>
+          </div>
+        </div>
+        <div class="d7-right">
+          <h2><span id="card-no-head"></span> の<br>カードをお取りください</h2>
+          <p class="desc">カードに記載の QR コード /URL からいつでも<br>あなたのつくったジャケットと楽曲のダウンロードページにアクセスできます</p>
+          <button class="btn primary" data-action="finish">終了してホームに戻る</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D9 / D10 Gallery p.9-10 -->
+  <section id="gallery" class="screen">
+    <header class="page-head">
+      <h1>Gallery</h1>
+      <p class="sub">同じ曲を聴いても、生まれたジャケットは違う。みんなの『My Cover』から「<span class="track-title"></span>」を聴いてみましょう。</p>
+    </header>
+    <div class="gallery-scroll"><div class="gallery-grid" id="gallery-grid"></div></div>
+    <p class="gallery-empty hidden" id="gallery-empty">まだジャケットがありません。</p>
+
+    <div id="D10" class="now-playing hidden">
+      <div class="np-left">
+        <p class="np-label">Now Playing</p>
+        <div class="np-image"><img class="cover" id="np-img" alt=""></div>
+      </div>
+      <div class="np-right">
+        <p class="label">入力したプロンプト</p>
+        <p class="quote small" id="np-input"></p>
+        <div class="np-player">
+          <p class="np-title track-title"></p>
+          <p class="np-no" id="np-no"></p>
+          <input type="range" class="seek" id="np-seek" min="0" step="0.1" value="0">
+          <div class="time-row"><span id="np-pos"></span><span id="np-dur"></span></div>
+          <div class="np-controls">
+            <button class="skip" data-skip="-10" aria-label="10秒戻す">↺<small>10</small></button>
+            <button class="play-btn big" id="np-play" aria-label="再生"></button>
+            <button class="skip" data-skip="10" aria-label="10秒送る">↻<small>10</small></button>
+          </div>
+          <div class="np-from">
+            <button data-audio="from_start">最初から再生</button>
+            <button data-audio="from_favorite" id="np-fav">お気に入りポイントから再生</button>
+          </div>
+        </div>
+        <button class="back-gallery" data-action="gallery">Back Gallery ▷</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ハンバーガー（待機中のみ） -->
+  <button class="hamburger" id="hamburger" data-action="menu_open" aria-label="メニュー"><span></span><span></span><span></span></button>
+
+  <!-- D1m メニュー p.8 -->
+  <div id="menu" class="menu hidden">
+    <button class="close" data-action="menu_close" aria-label="閉じる">×</button>
+    <nav>
+      <button data-action="start"><span class="m-title">Make Your Cover</span><span class="m-desc">あなただけのオリジナルジャケットをつくる</span></button>
+      <button data-action="gallery"><span class="m-title">Gallery</span><span class="m-desc">みんなの『My Cover』から聴いてみる</span></button>
+      <button data-action="about"><span class="m-title">About &amp; How To Use</span><span class="m-desc">作品概要・操作方法</span></button>
+      <button data-action="home" id="menu-home"><span class="m-title small">Home</span><span class="m-desc">ホームに戻る</span></button>
+    </nav>
+  </div>
+
+  <!-- D8 中止の確認 p.11 -->
+  <div id="abort" class="modal-wrap hidden">
+    <div class="modal">
+      <h2>ジャケットの作成を中止しますか？</h2>
+      <p>これまで入力したプロンプトと、生成したジャケットはすべて消去されます。</p>
+      <div class="row">
+        <button class="btn" data-action="abort_yes">はい、消去する</button>
+        <button class="btn primary" data-action="abort_no">いいえ、つづける</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="config" type="application/json">{{ config_json|safe }}</script>
+<script src="/static/js/common.js"></script>
+<script src="/static/js/stage.js"></script>
+<script src="/static/js/desk.js"></script>
+</body>
+</html>
