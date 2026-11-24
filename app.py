@@ -38,6 +38,18 @@ def client_config():
     }
 
 
+def lan_ip():
+    """このPCの LAN 内の IP アドレス（別の端末から開くときに使う）。実際には通信しない。"""
+    import socket
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return "（PCのIPアドレス）"
+
+
 @app.route("/")
 def index():
     return '<p><a href="/desk">/desk</a>（机のモニター） / <a href="/display">/display</a>（大型モニター）</p>'
@@ -125,6 +137,9 @@ if __name__ == "__main__":
              else "（ダミー。OpenAI を使うには API キーを設定）"))
     exhibit.sync.start()
     print("[My Cover] クラウド（Supabase）への送信：" + ("有効" if exhibit.sync.client.enabled else "未設定（set_supabase_key.bat で設定）"))
-    print(f"[My Cover] 起動しました：http://{cfg['server']['host']}:{cfg['server']['port']}/desk と /display を開いてください")
+    port = cfg["server"]["port"]
+    print(f"[My Cover] このPCで開く：http://127.0.0.1:{port}/desk と http://127.0.0.1:{port}/display")
+    if cfg["server"]["host"] == "0.0.0.0":
+        print(f"[My Cover] 同じネットワークの別の端末で開く：http://{lan_ip()}:{port}/desk ・ /display ・ /m/")
     print("[My Cover] この窓を閉じるとサーバーが止まります。生成の結果はここに表示されます")
     app.run(host=cfg["server"]["host"], port=cfg["server"]["port"], threaded=True, debug=False)
