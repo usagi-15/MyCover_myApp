@@ -126,6 +126,11 @@ function render(state) {
     if ($("#d5-img").getAttribute("src") !== s.image_url) $("#d5-img").src = s.image_url;
     $("#d5-input").textContent = s.image_input;
   }
+  if (screen === "D6") {
+    const none = state.cards_left <= 0;
+    $("#choice-card").disabled = none;
+    $("#choice-card .sold-out").classList.toggle("hidden", !none);
+  }
   if (changed && screen === "D7a" && state.result) {
     $("#qr").src = "/api/qr?data=" + encodeURIComponent(state.result.mobile_url);
   }

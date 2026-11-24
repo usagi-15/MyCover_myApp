@@ -1,0 +1,63 @@
+@font-face {
+  /* TODO: デザインで使った書体のファイル（ライセンス確認後）を fonts/ に置く */
+  font-family: "MyCoverSerif";
+  src: url("fonts/main.woff2") format("woff2");
+  font-display: swap;
+}
+:root {
+  --bg: #06061f;
+  --panel: #0e0e2e;
+  --fg: #fff;
+  --line: rgba(255, 255, 255, .8);
+  --muted: rgba(255, 255, 255, .7);
+  --font: "MyCoverSerif", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); letter-spacing: .06em; }
+body { min-height: 100vh; display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+.hidden { display: none !important; }
+
+.head { display: flex; justify-content: space-between; align-items: baseline; padding: 24px 22px 18px; }
+.head h1 { margin: 0; font-size: 34px; font-weight: 400; letter-spacing: .02em; }
+.no { margin: 0; font-size: 14px; }
+
+main { flex: 1; padding: 0 18px; }
+.panel { max-width: 520px; margin: 0 auto; background: var(--panel); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 28px 22px 26px; }
+.panel.center { text-align: center; padding: 60px 22px; }
+.msg { font-size: 15px; line-height: 1.9; margin: 0; }
+
+.jacket { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #2a2a44;
+  -webkit-touch-callout: default; user-select: auto; }
+.jacket.empty { display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); }
+
+.track-title { text-align: center; font-size: 36px; margin: 24px 0 0; }
+.artist { text-align: center; font-size: 16px; margin: 4px 0 18px; }
+
+.player { display: flex; align-items: center; gap: 12px; }
+.play { flex: none; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: none; position: relative; cursor: pointer; }
+.play::before { content: ""; position: absolute; left: 15px; top: 11px; border-style: solid; border-width: 9px 0 9px 14px; border-color: transparent transparent transparent #fff; }
+.play.playing::before { left: 13px; top: 12px; width: 4px; height: 16px; border: none; background: #fff; box-shadow: 8px 0 0 #fff; }
+.bar { flex: 1; }
+.bar input { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: transparent; margin: 0; }
+.bar input::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(to right, #fff 0 var(--pct, 0%), rgba(255,255,255,.5) var(--pct, 0%)); }
+.bar input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px; border-radius: 50%; background: #fff; }
+.bar input::-moz-range-track { height: 2px; background: rgba(255,255,255,.5); }
+.bar input::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: #fff; }
+.times { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+.download { display: block; margin: 34px auto 0; max-width: 300px; padding: 15px 0; text-align: center; background: #fff; color: var(--bg);
+  border-radius: 8px; font-size: 17px; text-decoration: none; }
+.download.disabled { opacity: .4; pointer-events: none; }
+.hint { text-align: center; font-size: 12px; margin: 14px 0 0; }
+
+.prompt { margin: 34px -8px 0; border-top: 1px solid var(--line); padding-top: 14px; }
+.label { font-size: 12px; margin: 0 0 14px; }
+.prompt-text { font-size: 14px; line-height: 1.8; margin: 0; padding: 0 10px; white-space: pre-wrap; word-break: break-all; }
+
+.m2-title { font-size: 18px; font-weight: 400; line-height: 1.6; margin: 30px 0 0; }
+.m2-desc { font-size: 13px; line-height: 1.9; margin: 22px 0 0; }
+.info { margin-top: 26px; background: #fff; color: var(--bg); border-radius: 10px; padding: 16px 20px; font-size: 13px; line-height: 2; text-align: left; }
+.info:empty { display: none; }
+
+.foot { text-align: center; padding: 30px 0 36px; }
+.foot a { color: var(--fg); font-size: 15px; }

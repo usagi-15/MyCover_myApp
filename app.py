@@ -6,7 +6,7 @@ import logging
 import qrcode
 from flask import Flask, abort, jsonify, render_template, request, send_from_directory
 
-from mycover.config import DATA_DIR, STATIC_DIR, load_config, load_samples
+from mycover.config import DATA_DIR, ROOT, STATIC_DIR, load_config, load_samples
 from mycover.dummy_assets import ensure_dummy_assets
 from mycover.generator import resolve_backend
 from mycover.state import ActionError, Exhibit
@@ -53,10 +53,16 @@ def display():
     return render_template("display.html", config_json=json.dumps(client_config(), ensure_ascii=False))
 
 
+MOBILE_DIR = ROOT / "mobile"
+
+
 @app.route("/m/")
-def mobile_stub():
-    # フェーズ4で GitHub Pages 用のスマホページに置き換える
-    return render_template("mobile_stub.html", token=request.args.get("t"), card=request.args.get("c"))
+@app.route("/m/<path:filename>")
+def mobile(filename="index.html"):
+    """スマホ用ページ（GitHub Pages に置くものと同じ mobile/）を開発中に PC からも配信する。"""
+    if filename == cfg["track"].get("mobile_mp3", "B7F.mp3") and not (MOBILE_DIR / filename).exists():
+        return send_from_directory(STATIC_DIR / "audio", filename)
+    return send_from_directory(MOBILE_DIR, filename)
 
 
 @app.route("/media/<path:filename>")
@@ -117,6 +123,8 @@ if __name__ == "__main__":
     print(f"[My Cover] 画像生成：{backend}"
           + (f"（モデル {cfg['openai']['model']} / 品質 {cfg['openai']['quality']}）" if backend == "openai"
              else "（ダミー。OpenAI を使うには API キーを設定）"))
+    exhibit.sync.start()
+    print("[My Cover] クラウド（Supabase）への送信：" + ("有効" if exhibit.sync.client.enabled else "未設定（set_supabase_key.bat で設定）"))
     print(f"[My Cover] 起動しました：http://{cfg['server']['host']}:{cfg['server']['port']}/desk と /display を開いてください")
     print("[My Cover] この窓を閉じるとサーバーが止まります。生成の結果はここに表示されます")
     app.run(host=cfg["server"]["host"], port=cfg["server"]["port"], threaded=True, debug=False)

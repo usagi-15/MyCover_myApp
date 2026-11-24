@@ -70,6 +70,14 @@ create table if not exists gallery_events (
 """
 
 
+# 後から足した列（既存の data/mycover.db にも追加する）
+MIGRATIONS = [
+    ("covers", "takeaway_at", "text"),              # 持ち帰り方法を選んだ日時
+    ("covers", "card_synced", "integer not null default 0"),  # カードのひも付けを Supabase に送ったか
+    ("covers", "remote_image_url", "text"),         # Supabase Storage の公開URL
+]
+
+
 def now_iso():
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
@@ -86,6 +94,10 @@ class Database:
         self.conn.execute("pragma journal_mode = wal")
         self.conn.execute("pragma foreign_keys = on")
         self.conn.executescript(SCHEMA)
+        for table, column, decl in MIGRATIONS:
+            cols = {r[1] for r in self.conn.execute(f"pragma table_info({table})")}
+            if column not in cols:
+                self.conn.execute(f"alter table {table} add column {column} {decl}")
 
     # ------------------------------------------------------------ 読み込み
     def load_covers(self):
@@ -130,8 +142,31 @@ class Database:
                  session.get("rejections", 0), session.get("failures", 0), session["id"]))
 
     def set_takeaway(self, jacket_no, takeaway, card_no=None):
-        self.conn.execute("update covers set takeaway = ?, card_no = ? where jacket_no = ?",
-                          (takeaway, card_no, jacket_no))
+        self.conn.execute("update covers set takeaway = ?, card_no = ?, takeaway_at = ? where jacket_no = ?",
+                          (takeaway, card_no, now_iso(), jacket_no))
+
+    # ------------------------------------------------------------ Supabase 送信（フェーズ4）
+    def unsynced_covers(self):
+        return [dict(r) for r in self.conn.execute(
+            "select * from covers where synced = 0 order by jacket_no").fetchall()]
+
+    def unsynced_card_links(self):
+        # ジャケットを送信済みのものだけ（cards.jacket_no は covers を参照するため）
+        return [dict(r) for r in self.conn.execute(
+            """select jacket_no, card_no, coalesce(takeaway_at, confirmed_at) as confirmed_at from covers
+               where card_no is not null and card_synced = 0 and synced = 1 order by jacket_no""").fetchall()]
+
+    def mark_cover_synced(self, jacket_no, url):
+        self.conn.execute("update covers set synced = 1, remote_image_url = ? where jacket_no = ?", (url, jacket_no))
+
+    def mark_card_synced(self, jacket_no):
+        self.conn.execute("update covers set card_synced = 1 where jacket_no = ?", (jacket_no,))
+
+    def sync_status(self):
+        r = self.conn.execute(
+            """select count(*) filter (where synced = 0),
+                      count(*) filter (where card_no is not null and card_synced = 0) from covers""").fetchone()
+        return {"covers_pending": r[0], "cards_pending": r[1]}
 
     # ------------------------------------------------------------ ギャラリー
     def gallery_play_started(self, jacket_no):

@@ -207,3 +207,6 @@
 
 /* ハンバーガーのある画面では見出しの右側を空ける */
 #gallery .page-head, #D2 .page-head { right: 180px; }
+
+.choice:disabled { opacity: .35; cursor: default; }
+.choice .sold-out { margin-top: -10px; }

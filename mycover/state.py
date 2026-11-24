@@ -10,6 +10,7 @@ import uuid
 
 from . import generator
 from .db import Database, iso_to_epoch, now_iso
+from .supabase import SyncWorker
 
 # 体験途中（未確定）の画面。ここで HOME を押すと中止確認（D8）を出す
 MAKING_SCREENS = {"D3", "D4", "D5"}
@@ -33,6 +34,7 @@ class Exhibit:
         self.gen_times = []       # 直近の生成時間（秒）
         self.gallery_play_id = None
         self._cleanup_images()
+        self.sync = SyncWorker(cfg, self.db, self.lock, generator.IMAGES_DIR)
         self._reset_desk()
         self.audio = self._audio_idle()
         self.display = {"screen": "S1", "cover": None, "mode": None}
@@ -157,7 +159,12 @@ class Exhibit:
                 "display": dict(self.display),
                 "covers_rev": self.covers_rev,
                 "next_card_no": self.next_card_no,
+                "cards_left": self.cards_left(),
             }
+
+    def cards_left(self):
+        n = self.cfg["numbering"]
+        return max(0, n["card_start_no"] + n["card_count"] - self.next_card_no)
 
     def public_covers(self):
         with self.lock:
@@ -402,6 +409,7 @@ class Exhibit:
                        "mobile_url": self.cfg["mobile"]["base_url"] + "?t=" + cover["token"]}
         self.desk = {"screen": "D6", "modal": None}
         self._play_on_display(cover, mode="confirm")
+        self.sync.kick()  # スマホで QR を読む前に Supabase へ送る
 
     def _play_on_display(self, cover, mode, start=None):
         public = {k: cover[k] for k in ("jacket_no", "image_url", "input", "favorite_sec")}
@@ -420,6 +428,8 @@ class Exhibit:
 
     def _act_take_it_home(self, _):
         self._require("D6")
+        if self.cards_left() <= 0:
+            raise ActionError("カードがありません")
         cover = self._cover_by_no(self.result["jacket_no"])
         cover["takeaway"] = "take_it_home"
         cover["card_no"] = self.next_card_no
@@ -427,6 +437,7 @@ class Exhibit:
         self.result["card_no"] = self.next_card_no
         self.next_card_no += 1
         self.desk["screen"] = "D7b"
+        self.sync.kick()
 
     def _cover_by_no(self, no):
         for c in self.covers:

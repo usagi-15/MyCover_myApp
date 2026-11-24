@@ -19,7 +19,8 @@
     "jacket_digits": 4,
     "card_digits": 4,
     "card_start_no": 1,
-    "_note": "TODO: 桁数とカード発行枚数は未決定（デザイン上は No.00000000）"
+    "card_count": 100,
+    "_note": "作者決定（2026-11-24）：No. は4桁、カードは100枚（No.0001〜0100）"
   },
 
   "input": {
@@ -70,12 +71,15 @@
     "url": "https://hasykewktdnsqgrnzgij.supabase.co",
     "publishable_key": "sb_publishable_tV56DfmPw7fX5CfcCKNEyA_1yI9Dxwm",
     "anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhc3lrZXdrdGRuc3Fncm56Z2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0ODI5NzMsImV4cCI6MjExMTA1ODk3M30.OBMF79HmdDg3zbPx4KNE0pqAj9YDbo6DRNfRE0LMb84",
-    "_note": "公開してよいキーのみ（スマホ用ページに埋め込むもの。RLS で保護）。秘密キー（secret / service_role）はここに書かず、展示PCの config/secrets.json か環境変数に置く（フェーズ4）"
+    "bucket": "covers",
+    "timeout_sec": 20,
+    "retry_interval_sec": 30,
+    "_note": "公開してよいキーのみ（スマホ用ページに埋め込むもの。RLS で保護）。秘密キー（secret / service_role）はここに書かず、set_supabase_key.bat で config/secrets.json に保存する"
   },
 
   "mobile": {
-    "base_url": "http://127.0.0.1:5000/m/",
+    "base_url": "https://usagi-15.github.io/mycover/",
     "public_url": "https://usagi-15.github.io/mycover/",
-    "_note": "base_url が QR・カードに使う URL。フェーズ4でスマホ用ページを公開したら public_url の値に切り替える。同じWi-Fiのスマホで試すときは PC の LAN IP にする"
+    "_note": "base_url が Get It Now の QR に使う URL（カードは public_url）。PCのローカルで試すときは config.local.json で base_url を http://<PCのLAN IP>:5000/m/ にする"
   }
 }

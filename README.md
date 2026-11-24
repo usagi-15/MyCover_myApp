@@ -86,6 +86,16 @@ py tools/test_generate.py "深い海の底。一筋の光がさしている。" 
 { "openai": { "model": "gpt-image-2", "quality": "low" } }
 ```
 
+## クラウド（Supabase・スマホ用ページ・カード）の設定（フェーズ4）
+
+手順は `notes/クラウド構成手順.md` の 6章。
+
+1. `set_supabase_key.bat`：Supabase の秘密キーを保存して接続を確認
+2. `make_cards.bat`：カード100枚のトークン・CSV・QR 画像を作り、Supabase に登録（`data\cards`。**バックアップ必須**）
+3. `mobile` フォルダの中身を GitHub Pages 用リポジトリ `usagi-15/mycover` に置く（楽曲 `B7F.mp3` も）
+
+起動時に「クラウド（Supabase）への送信：有効」と出れば、確定したジャケットが Supabase に送られます。
+
 ## 記録（研究データ）とコードの更新時の注意
 
 確定したジャケットと研究用の記録は **`data/` フォルダ**（`data/mycover.db` と `data/images/`）に保存されます。
@@ -119,10 +129,14 @@ prompts/input_rule.txt 鑑賞者の言葉を文字として書き込まないた
 tools/test_generate.py 画像生成の動作確認・モデル比較
 data/                  記録（mycover.db）と生成画像（Git管理外。消さないこと）
 supabase/schema.sql    Supabase のテーブル・RLS（notes/クラウド構成手順.md 参照）
+mycover/supabase.py    Supabase への送信（失敗したら再送）
 start_dev.bat          開発用の起動ファイル
 set_api_key.bat        OpenAI の API キーを保存する
 test_models.bat        画像生成モデルの比較
 export_csv.bat         研究用の記録を CSV に書き出す
+set_supabase_key.bat   Supabase の秘密キーを保存して接続を確認
+make_cards.bat         カードの発行（CSV・QR 画像・Supabase 登録）
+mobile/                スマホ用ページ（GitHub Pages 用リポジトリ usagi-15/mycover に置く）
 notes/                 仕様・進捗・クラウド構成手順
 ```
 
