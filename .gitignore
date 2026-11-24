@@ -7,3 +7,7 @@ config/config.local.json
 config/secrets.json
 .env
 *.log
+
+# 楽曲ファイルは公開リポジトリに上げない（各PCの static/audio/ に手で置く）
+static/audio/*.mp3
+mobile/*.mp3
