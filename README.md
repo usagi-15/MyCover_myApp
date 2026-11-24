@@ -5,29 +5,52 @@
 
 ## 必要なもの
 
-- Windows 11 / Python 3（python.org版）/ Google Chrome
+- Windows 11 / Python 3（python.org版。インストール時に「Add python.exe to PATH」にチェック）/ Google Chrome
 - Python ライブラリ：`openai`, `Pillow`, `qrcode`, `Flask`（これ以外は使わない）
-
-```bat
-py -m pip install -r requirements.txt
-```
 
 ## 開発中の起動（フェーズ1）
 
+**サーバー（`app.py`）は、画面を開くPC自身で動かす必要があります。**
+`http://127.0.0.1:5000` は「このPC」を指すアドレスなので、サーバーを起動していないPCの Chrome では開けません。
+
+### 1. コードを PC に取ってくる
+
+どちらかの方法で。
+
+- **ZIP で取る（簡単）**：GitHub のリポジトリページで、ブランチを `claude/create-claude-docs-evzn33` に切り替え →「Code」→「Download ZIP」→ 展開
+- **git で取る**：
+
 ```bat
+git clone -b claude/create-claude-docs-evzn33 https://github.com/usagi-15/MyCover_myApp.git
+```
+
+### 2. 起動する
+
+展開したフォルダの **`start_dev.bat` をダブルクリック**。
+ライブラリのインストール → サーバー起動（「MyCover server」という黒い窓が開く）→ Chrome で `/desk` と `/display` が開きます。
+止めるときは「MyCover server」の窓を閉じます。
+
+手動で起動する場合：
+
+```bat
+py -m pip install -r requirements.txt
 py app.py
 ```
 
-Chrome で次の2つを開く（1台のモニターで試すときは別ウィンドウで並べる）。
+「Running on http://127.0.0.1:5000」と表示されたら、Chrome で次の2つを開きます。
 
 - 机のモニター：http://127.0.0.1:5000/desk
 - 大型モニター：http://127.0.0.1:5000/display
 
-自動再生を許可するため、確認用の Chrome は次のように起動すると楽です（本番用の起動 `.bat` はフェーズ5で用意）。
+### 開けないとき
 
-```bat
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --autoplay-policy=no-user-gesture-required --user-data-dir=%TEMP%\mycover-chrome http://127.0.0.1:5000/display
-```
+| 症状 | 確認すること |
+| --- | --- |
+| 「このサイトにアクセスできません」 | サーバーの窓が開いていて「Running on ...」と出ているか。窓を閉じると止まる |
+| `py` が見つからない | python.org 版の Python をインストールしたか |
+| `No module named flask` など | `py -m pip install -r requirements.txt` を実行したか |
+| サーバーの窓に赤いエラー | エラー文の最後の数行を共有してください |
+| 音が出ない | `start_dev.bat` から開いたか（自動再生を許可するオプション付きで Chrome を開く）。または一度画面をクリックする |
 
 ## フォルダ構成
 
@@ -43,7 +66,9 @@ config/samples.json    作成例カルーセル
 config/ng_words.txt    NGワード
 prompts/base_prompt.txt 固定プロンプト
 data/                  生成画像などの実行時データ（Git管理外）
-notes/                 仕様・進捗
+supabase/schema.sql    Supabase のテーブル・RLS（notes/クラウド構成手順.md 参照）
+start_dev.bat          開発用の起動ファイル
+notes/                 仕様・進捗・クラウド構成手順
 ```
 
 ## 開発用メモ
