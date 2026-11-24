@@ -31,7 +31,7 @@ $("#btn-generate").addEventListener("click", async () => {
   if (!text) return;
   $("#input-error").textContent = "";
   const res = await act("generate", { input: text, position: audio.el.currentTime });
-  if (!res.ok) $("#input-error").textContent = res.data?.error || "もう一度お試しください。";
+  if (!res.ok) $("#input-error").textContent = res.data?.state?.session?.notice || "もう一度お試しください。";
 });
 
 $("#input").addEventListener("input", updateInputState);
@@ -111,7 +111,7 @@ function render(state) {
   const s = state.session;
   if (changed && screen === "D3") {
     $("#input").value = s?.input || "";
-    $("#input-error").textContent = "";
+    $("#input-error").textContent = s?.notice || "";
     updateInputState();
     setTimeout(() => $("#input").focus(), 50);
   }

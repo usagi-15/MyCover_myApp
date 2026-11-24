@@ -102,6 +102,7 @@ class Exhibit:
                     "input": s["input"],
                     "status": s["status"],          # idle / generating / done / error
                     "error": s.get("error"),
+                    "notice": s.get("notice"),          # D3 に出す書き直しのお願い
                     "gen_started_at": s.get("gen_started_at"),
                     "estimate_sec": s.get("estimate_sec"),
                     "image_url": f"/media/images/{current['image']}" if current and current.get("image") else None,
@@ -246,13 +247,17 @@ class Exhibit:
         s = self.session
         text = (data.get("input") if "input" in data else s["input"]) or ""
         text = text.strip()
-        if not text:
-            raise ActionError("入力が空です")
-        if len(text) > self.cfg["input"]["max_chars"]:
-            raise ActionError("文字数が上限を超えています")
         if s["status"] == "generating":
             return
         s["input"] = text
+        problem = generator.check_input_local(self.cfg, text)
+        if problem:
+            # 文字数・NGワード：D3 のまま書き直してもらう
+            s["notice"] = problem
+            if self.desk["screen"] != "D3":
+                self.desk = {"screen": "D3", "modal": None}
+            raise ActionError(problem)
+        s["notice"] = None
         if data.get("position") is not None:
             # TODO: 「お気に入りポイント」の定義は未確認。仮に「これで生成する」を押した時点の再生位置を記録する
             s["favorite_sec"] = float(data["position"])
@@ -266,13 +271,23 @@ class Exhibit:
     def _run_generation(self, s, text):
         try:
             image, sec = generator.generate(self.cfg, text, len(s["attempts"]))
-            error = None
+            error = rejected = None
+        except generator.InputRejected as e:
+            image, sec, error, rejected = None, None, None, str(e)
         except Exception as e:  # noqa: BLE001 - 失敗は画面で再試行を促す
-            image, sec, error = None, None, str(e)
+            image, sec, error, rejected = None, None, str(e), None
         with self.lock:
             if s.get("discarded") or self.session is not s:
                 if image:
                     generator.delete_image(image)
+                return
+            if rejected:
+                # モデレーション等に引っかかった：D3 に戻して、やさしく書き直しをお願いする
+                s["status"] = "done" if s["attempts"] else "idle"
+                s["notice"] = rejected
+                s["rejections"] = s.get("rejections", 0) + 1
+                if self.desk["screen"] == "D4":
+                    self.desk = {"screen": "D3", "modal": None}
                 return
             if error:
                 s["status"] = "error"
@@ -290,6 +305,7 @@ class Exhibit:
         if self.session["status"] == "generating":
             raise ActionError("生成中です")
         self.session["status"] = "idle" if not self.session["attempts"] else "done"
+        self.session["notice"] = None
         self.desk = {"screen": "D3", "modal": None}
 
     def _act_retry(self, _):

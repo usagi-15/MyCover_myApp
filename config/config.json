@@ -28,11 +28,35 @@
   },
 
   "generation": {
-    "backend": "dummy",
-    "_backend_note": "dummy（フェーズ1）/ openai（フェーズ2で実装）",
+    "backend": "auto",
+    "_backend_note": "auto：OpenAI の API キーがあれば openai、無ければ dummy ／ openai ／ dummy",
     "dummy_delay_sec": 4,
     "initial_estimate_sec": 30,
-    "estimate_window": 5
+    "estimate_window": 5,
+    "title_mode": "ai",
+    "_title_note": "ai：曲名をAIに描かせる（決定・既定）／ overlay：生成後に Pillow で固定位置に重ねる",
+    "title_overlay": {
+      "font_file": null,
+      "_font_note": "TODO: タイトル用フォントのファイル（例 static/fonts/title.otf）。未設定なら游明朝などを使う",
+      "x_ratio": 0.5,
+      "y_ratio": 0.9,
+      "anchor_x": 0.5,
+      "anchor_y": 1.0,
+      "size_ratio": 0.08,
+      "color": [255, 255, 255]
+    }
+  },
+
+  "openai": {
+    "model": "gpt-image-2",
+    "_model_note": "TODO: 使うモデルを OpenAI のドキュメント／tools/test_generate.py で確認して決める（gpt-image-1 は 2026/10/23 に提供終了）",
+    "quality": "medium",
+    "size": "1024x1024",
+    "output_compression": 90,
+    "timeout_sec": 120,
+    "max_retries": 1,
+    "use_moderation": true,
+    "moderation_model": "omni-moderation-latest"
   },
 
   "display": {

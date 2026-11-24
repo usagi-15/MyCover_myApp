@@ -52,6 +52,37 @@ py app.py
 | サーバーの窓に赤いエラー | エラー文の最後の数行を共有してください |
 | 音が出ない | `start_dev.bat` から開いたか（自動再生を許可するオプション付きで Chrome を開く）。または一度画面をクリックする |
 
+## 画像生成（OpenAI）の設定（フェーズ2）
+
+API キーが無い間はダミー画像で動きます（起動時に「画像生成：dummy」と表示）。OpenAI を使うには、次のどちらかで API キーを渡します。**キーはコードや GitHub、チャットに書かないこと。**
+
+- **設定ファイル**：`config/secrets.example.json` をコピーして `config/secrets.json` という名前にし、`openai_api_key` にキーを書く（`secrets.json` は Git 管理外）
+- **環境変数**：`OPENAI_API_KEY` に設定する
+
+```bat
+setx OPENAI_API_KEY "sk-..."
+```
+（`setx` のあとは、コマンドプロンプトを開き直すと有効になります）
+
+起動時に「画像生成：openai（モデル … / 品質 …）」と出れば OpenAI を使っています。
+
+### モデル・品質の比較
+
+使うモデルは `config/config.json` の `openai.model`（仮：`gpt-image-2`）。次のスクリプトで、生成にかかる時間と仕上がりを比べられます（API 利用料金がかかります）。結果の画像は `data/test/` に保存されます。
+
+```bat
+py tools/test_generate.py "深い海の底。一筋の光がさしている。" --models gpt-image-2 gpt-image-2.5-sunburst gpt-image-2.5-flare
+```
+```bat
+py tools/test_generate.py "深い海の底。一筋の光がさしている。" --model gpt-image-2 --quality low
+```
+
+展示PC固有の値（モデル・品質など）は `config/config.local.json` に書くと `config.json` を上書きできます。
+
+```json
+{ "openai": { "model": "gpt-image-2", "quality": "low" } }
+```
+
 ## フォルダ構成
 
 ```
@@ -63,8 +94,11 @@ static/audio/B7F.mp3   楽曲（未配置。無い間は開発用ダミー音源
 static/fonts/          フォントファイル（未配置）
 config/config.json     設定（展示PC固有の値は config/config.local.json で上書き。Git管理外）
 config/samples.json    作成例カルーセル
+config/secrets.json    API キーなどの秘密情報（Git管理外。secrets.example.json を参考に作る）
 config/ng_words.txt    NGワード
-prompts/base_prompt.txt 固定プロンプト
+prompts/base_prompt.txt 固定プロンプト（曲の世界観・画風。作者が書く）
+prompts/title_ai.txt   曲名をAIに描かせるための指示（title_mode が ai のとき）
+tools/test_generate.py 画像生成の動作確認・モデル比較
 data/                  生成画像などの実行時データ（Git管理外）
 supabase/schema.sql    Supabase のテーブル・RLS（notes/クラウド構成手順.md 参照）
 start_dev.bat          開発用の起動ファイル
@@ -73,5 +107,5 @@ notes/                 仕様・進捗・クラウド構成手順
 
 ## 開発用メモ
 
-- 入力欄に `#fail` と入れて生成すると、生成失敗時の画面（D4）を確認できる（ダミー生成時のみ）。
+- ダミー生成時のみ：入力欄に `#fail` と入れると生成失敗時の画面（D4）、`#ng` と入れると書き直しのお願い（D3）を確認できる。
 - 確定したジャケットはフェーズ1ではメモリ上だけに保存されるため、サーバーを再起動すると消える（フェーズ3で SQLite に保存）。

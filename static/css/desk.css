@@ -110,7 +110,7 @@
 .input-foot .btn { margin-left: auto; }
 .count { font-size: 14px; color: var(--muted); }
 .count.over { color: #ff9a9a; }
-.input-error { font-size: 16px; color: #ffd0d0; }
+.input-error { flex: 1; font-size: 16px; line-height: 1.5; color: #ffd0d0; }
 
 /* D4 */
 .pressing { position: absolute; left: 254px; top: 95px; width: 550px; height: 550px; display: flex; align-items: center; justify-content: center; overflow: hidden; }

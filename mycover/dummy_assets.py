@@ -29,8 +29,8 @@ def _font(size):
     return ImageFont.load_default()
 
 
-def make_cover_image(path: Path, text: str, seed: int, title: str = "B7F", size: int = 1024):
-    """入力文と曲名を載せたグラデーション画像（ダミー生成結果）。"""
+def make_cover_image(path, text: str, seed: int, title="B7F", size: int = 1024):
+    """入力文と曲名を載せたグラデーション画像（ダミー生成結果）。path が None なら画像を返す。"""
     top, bottom = _PALETTES[seed % len(_PALETTES)]
     img = Image.new("RGB", (size, size))
     draw = ImageDraw.Draw(img)
@@ -42,13 +42,17 @@ def make_cover_image(path: Path, text: str, seed: int, title: str = "B7F", size:
         cx = (seed * 53 + i * 211) % size
         cy = (seed * 71 + i * 157) % size
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(255, 255, 255), width=2)
-    draw.text((60, 60), title, font=_font(140), fill=(255, 255, 255))
+    if title:
+        draw.text((60, 60), title, font=_font(140), fill=(255, 255, 255))
     body = (text or "")[:60]
     lines = [body[i:i + 15] for i in range(0, len(body), 15)]
     draw.multiline_text((60, size - 80 - 50 * len(lines)), "\n".join(lines), font=_font(40), fill=(255, 255, 255))
     draw.text((size - 330, size - 50), "DUMMY IMAGE", font=_font(28), fill=(255, 255, 255))
+    if path is None:
+        return img
     path.parent.mkdir(parents=True, exist_ok=True)
     img.save(path, "PNG")
+    return img
 
 
 def _make_tone(path: Path, seconds: int = 90, rate: int = 22050):

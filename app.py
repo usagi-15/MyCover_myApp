@@ -1,12 +1,14 @@
 """『My Cover』展示アプリ（Flask サーバー）。起動：python app.py"""
 import io
 import json
+import logging
 
 import qrcode
 from flask import Flask, abort, jsonify, render_template, request, send_from_directory
 
 from mycover.config import DATA_DIR, STATIC_DIR, load_config, load_samples
 from mycover.dummy_assets import ensure_dummy_assets
+from mycover.generator import resolve_backend
 from mycover.state import ActionError, Exhibit
 
 cfg = load_config()
@@ -108,4 +110,9 @@ def api_qr():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    backend = resolve_backend(cfg)
+    print(f"[My Cover] 画像生成：{backend}"
+          + (f"（モデル {cfg['openai']['model']} / 品質 {cfg['openai']['quality']}）" if backend == "openai"
+             else "（ダミー。OpenAI を使うには API キーを設定）"))
     app.run(host=cfg["server"]["host"], port=cfg["server"]["port"], threaded=True, debug=False)
