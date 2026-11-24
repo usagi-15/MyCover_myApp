@@ -111,8 +111,12 @@ def api_qr():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # 0.5秒ごとのポーリングで窓が埋まらないよう、リクエストごとのログは出さない（エラーは出る）
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
     backend = resolve_backend(cfg)
     print(f"[My Cover] 画像生成：{backend}"
           + (f"（モデル {cfg['openai']['model']} / 品質 {cfg['openai']['quality']}）" if backend == "openai"
              else "（ダミー。OpenAI を使うには API キーを設定）"))
+    print(f"[My Cover] 起動しました：http://{cfg['server']['host']}:{cfg['server']['port']}/desk と /display を開いてください")
+    print("[My Cover] この窓を閉じるとサーバーが止まります。生成の結果はここに表示されます")
     app.run(host=cfg["server"]["host"], port=cfg["server"]["port"], threaded=True, debug=False)

@@ -2,6 +2,7 @@
 
 フェーズ1では確定済みジャケットはメモリ上のみ（再起動で消える）。フェーズ3で SQLite に保存する。
 """
+import logging
 import secrets
 import threading
 import time
@@ -11,6 +12,7 @@ from . import generator
 
 # 体験途中（未確定）の画面。ここで HOME を押すと中止確認（D8）を出す
 MAKING_SCREENS = {"D3", "D4", "D5"}
+log = logging.getLogger("mycover")
 
 
 class ActionError(Exception):
@@ -276,6 +278,12 @@ class Exhibit:
             image, sec, error, rejected = None, None, None, str(e)
         except Exception as e:  # noqa: BLE001 - 失敗は画面で再試行を促す
             image, sec, error, rejected = None, None, str(e), None
+        if image:
+            log.info("生成しました（%.1f 秒）", sec)
+        elif rejected:
+            log.info("入力が受け付けられず、書き直しをお願いしました")
+        else:
+            log.warning("生成に失敗しました：%s", error)
         with self.lock:
             if s.get("discarded") or self.session is not s:
                 if image:
