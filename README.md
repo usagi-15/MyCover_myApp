@@ -74,7 +74,7 @@ setx OPENAI_API_KEY "sk-..."
 コマンドで実行する場合は、次のスクリプトで、生成にかかる時間と仕上がりを比べられます（API 利用料金がかかります）。結果の画像は `data/test/` に保存されます。
 
 ```bat
-py tools/test_generate.py "深い海の底。一筋の光がさしている。" --models gpt-image-2 gpt-image-2.5-sunburst gpt-image-2.5-flare
+py tools/test_generate.py "深い海の底。一筋の光がさしている。" --models gpt-image-2.6-sunburst gpt-image-2.6-flare
 ```
 ```bat
 py tools/test_generate.py "深い海の底。一筋の光がさしている。" --model gpt-image-2 --quality low

@@ -23,7 +23,7 @@ from mycover.config import DATA_DIR, load_config  # noqa: E402
 
 DEFAULT_TEXT = "深い海の底。一筋の光がさしている。"
 # 比較の候補（openai ライブラリに記載のあるモデルから。使えるかどうかは実行して確認する）
-COMPARE_MODELS = ["gpt-image-2", "gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+COMPARE_MODELS = ["gpt-image-2", "gpt-image-2.5-sunburst", "gpt-image-2.5-flare", "gpt-image-2.6-sunburst", "gpt-image-2.6-flare"]
 
 
 def main():
