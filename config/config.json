@@ -48,8 +48,8 @@
   },
 
   "openai": {
-    "model": "gpt-image-2",
-    "_model_note": "TODO: 使うモデルを OpenAI のドキュメント／tools/test_generate.py で確認して決める（gpt-image-1 は 2026/10/23 に提供終了）",
+    "model": "gpt-image-2.6-sunburst",
+    "_model_note": "作者が決定（2026-11-24）。品質（quality）は未確定（仮 medium）",
     "quality": "medium",
     "size": "1024x1024",
     "output_compression": 90,

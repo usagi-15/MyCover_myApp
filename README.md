@@ -69,7 +69,7 @@ setx OPENAI_API_KEY "sk-..."
 
 ### モデル・品質の比較
 
-使うモデルは `config/config.json` の `openai.model`（仮：`gpt-image-2`）。
+使うモデルは `config/config.json` の `openai.model`（`gpt-image-2.6-sunburst`）。
 `test_models.bat` をダブルクリックすると、候補のモデルで順に生成して秒数を表示し、画像のフォルダ（`data\test`）を開きます。
 コマンドで実行する場合は、次のスクリプトで、生成にかかる時間と仕上がりを比べられます（API 利用料金がかかります）。結果の画像は `data/test/` に保存されます。
 
