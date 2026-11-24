@@ -42,6 +42,7 @@
 
   "mobile": {
     "base_url": "http://127.0.0.1:5000/m/",
-    "_note": "スマホ用ページの公開先。フェーズ4で GitHub Pages の URL に切り替える。同じWi-Fiのスマホで試すときは PC の LAN IP にする"
+    "public_url": "https://usagi-15.github.io/mycover/",
+    "_note": "base_url が QR・カードに使う URL。フェーズ4でスマホ用ページを公開したら public_url の値に切り替える。同じWi-Fiのスマホで試すときは PC の LAN IP にする"
   }
 }
