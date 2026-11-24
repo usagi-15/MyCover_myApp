@@ -40,6 +40,13 @@
     "_note": "確定からこの秒数の間は大型モニターのギャラリーで目立たせる"
   },
 
+  "supabase": {
+    "url": "https://hasykewktdnsqgrnzgij.supabase.co",
+    "publishable_key": "sb_publishable_tV56DfmPw7fX5CfcCKNEyA_1yI9Dxwm",
+    "anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhc3lrZXdrdGRuc3Fncm56Z2lqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0ODI5NzMsImV4cCI6MjExMTA1ODk3M30.OBMF79HmdDg3zbPx4KNE0pqAj9YDbo6DRNfRE0LMb84",
+    "_note": "公開してよいキーのみ（スマホ用ページに埋め込むもの。RLS で保護）。秘密キー（secret / service_role）はここに書かず、展示PCの config/secrets.json か環境変数に置く（フェーズ4）"
+  },
+
   "mobile": {
     "base_url": "http://127.0.0.1:5000/m/",
     "public_url": "https://usagi-15.github.io/mycover/",
