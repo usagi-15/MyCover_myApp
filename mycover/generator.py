@@ -31,6 +31,9 @@ class GenerationError(Exception):
     """API障害・回線断など。D4 で「もう一度試す／言葉を変える」を出す。"""
 
 
+AUTH_MESSAGE = "OpenAI の API キーが正しくありません（401）。set_api_key.bat でキーを設定し直してください"
+
+
 class InputRejected(Exception):
     """入力が NGワード・モデレーションに引っかかった。D3 に戻して書き直してもらう。"""
 
@@ -108,10 +111,14 @@ def moderate(cfg, text):
     """OpenAI のモデレーションAPI。引っかかったら InputRejected。"""
     if resolve_backend(cfg) != "openai" or not cfg["openai"]["use_moderation"]:
         return
+    from openai import AuthenticationError
+
     try:
         res = _openai_client(cfg).moderations.create(model=cfg["openai"]["moderation_model"], input=text)
+    except AuthenticationError as e:
+        raise GenerationError(AUTH_MESSAGE) from e
     except Exception as e:  # noqa: BLE001
-        raise GenerationError(f"moderation failed: {e}") from e
+        raise GenerationError(f"入力チェック（モデレーション）に失敗：{_short(e)}") from e
     if any(r.flagged for r in res.results):
         raise InputRejected(REJECT_MESSAGE)
 
@@ -164,7 +171,7 @@ def generate(cfg, text, attempt_index):
 
 
 def _generate_openai(cfg, text):
-    from openai import APIConnectionError, APIStatusError, APITimeoutError, BadRequestError
+    from openai import APIConnectionError, APIStatusError, APITimeoutError, AuthenticationError, BadRequestError
 
     o = cfg["openai"]
     params = {
@@ -186,18 +193,27 @@ def _generate_openai(cfg, text):
             log.info("image request rejected by safety system: %s", code)
             raise InputRejected(REJECT_MESSAGE) from e
         log.error("image request failed: %s", e)
-        raise GenerationError(f"bad request: {e}") from e
+        raise GenerationError(f"リクエストが受け付けられませんでした：{_short(e)}") from e
+    except AuthenticationError as e:
+        raise GenerationError(AUTH_MESSAGE) from e
     except (APIConnectionError, APITimeoutError) as e:
         log.warning("network error: %s", e)
-        raise GenerationError(f"network: {e}") from e
+        raise GenerationError(f"OpenAI に接続できませんでした（回線・タイムアウト）：{_short(e)}") from e
     except APIStatusError as e:
         log.warning("api error %s: %s", e.status_code, e)
-        raise GenerationError(f"api {e.status_code}") from e
+        raise GenerationError(f"OpenAI のエラー（{e.status_code}）：{_short(e)}") from e
 
     data = res.data[0] if res.data else None
     if not data or not data.b64_json:
         raise GenerationError("画像が返ってきませんでした")
     return Image.open(io.BytesIO(base64.b64decode(data.b64_json))).convert("RGB")
+
+
+def _short(e, limit=200):
+    """エラー文を短くする（伏せ字のキーなどで長くなるのを防ぐ）。"""
+    msg = getattr(e, "message", None) or str(e)
+    msg = " ".join(msg.split())
+    return msg if len(msg) <= limit else msg[:limit] + "…"
 
 
 def _save_jpeg(img, path):

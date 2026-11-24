@@ -84,6 +84,9 @@ def main():
             line = f"[失敗] {model}: {e}（{time.monotonic() - started:.1f} 秒）"
         print(line, flush=True)
         results.append(line)
+        if "API キーが正しくありません" in line:
+            print("API キーの問題のため、残りのモデルは試さずに終了します。")
+            break
     print()
     print("===== 結果のまとめ（この部分をコピーして共有してください。API キーは含まれません） =====")
     for line in results:
