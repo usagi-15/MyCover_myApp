@@ -31,6 +31,8 @@
     "backend": "auto",
     "_backend_note": "auto：OpenAI の API キーがあれば openai、無ければ dummy ／ openai ／ dummy",
     "dummy_delay_sec": 4,
+    "min_pressing_sec": 5,
+    "_min_pressing_note": "生成が早く終わっても「Now Pressing...」（D4）をこの秒数は表示する（作者決定）",
     "initial_estimate_sec": 30,
     "estimate_window": 5,
     "title_mode": "ai",

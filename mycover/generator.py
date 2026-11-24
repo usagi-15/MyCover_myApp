@@ -6,6 +6,7 @@
 
 送るプロンプト = 固定プロンプト（prompts/base_prompt.txt）
               ＋ タイトルの指示（title_mode が "ai" のときだけ prompts/title_ai.txt）
+              ＋ 入力の扱いの指示（prompts/input_rule.txt：入力を文字として書き込まない）
               ＋ 鑑賞者の入力
 """
 import base64
@@ -136,6 +137,7 @@ def build_prompt(cfg, text):
     parts = [_read_prompt("base_prompt.txt")]
     if cfg["generation"]["title_mode"] == "ai":
         parts.append(_read_prompt("title_ai.txt").replace("{title}", cfg["track"]["title"]))
+    parts.append(_read_prompt("input_rule.txt"))
     parts.append("鑑賞者の言葉：\n" + text)
     return "\n\n".join(p for p in parts if p)
 

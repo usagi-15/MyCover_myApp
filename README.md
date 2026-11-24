@@ -86,6 +86,20 @@ py tools/test_generate.py "深い海の底。一筋の光がさしている。" 
 { "openai": { "model": "gpt-image-2", "quality": "low" } }
 ```
 
+## 記録（研究データ）とコードの更新時の注意
+
+確定したジャケットと研究用の記録は **`data/` フォルダ**（`data/mycover.db` と `data/images/`）に保存されます。
+
+- **新しいコードを ZIP で取り直すときは、古いフォルダの `data` フォルダと `config/secrets.json` を新しいフォルダにコピーしてください。** コピーしないと、ギャラリーと記録が空になります（古いフォルダを消すと記録も消えます）。
+- 記録を Excel で見るには **`export_csv.bat`** をダブルクリック。`data/export/<日時>/` に表ごとの CSV ができます。
+
+| 表 | 内容 |
+| --- | --- |
+| covers | 確定したジャケット（No.、確定日時、入力文、作り直し回数、持ち帰り方法、カード No. など） |
+| cover_attempts | 確定したジャケットの各回の入力文と生成時間 |
+| sessions | 体験の開始・終了時刻と結果（確定／中止）。中止した回は入力文を残さない |
+| gallery_plays / gallery_events | ギャラリーで再生されたジャケットと操作（再生・一時停止・移動など） |
+
 ## フォルダ構成
 
 ```
@@ -101,16 +115,18 @@ config/secrets.json    API キーなどの秘密情報（Git管理外。secrets.
 config/ng_words.txt    NGワード
 prompts/base_prompt.txt 固定プロンプト（曲の世界観・画風。作者が書く）
 prompts/title_ai.txt   曲名をAIに描かせるための指示（title_mode が ai のとき）
+prompts/input_rule.txt 鑑賞者の言葉を文字として書き込まないための指示
 tools/test_generate.py 画像生成の動作確認・モデル比較
-data/                  生成画像などの実行時データ（Git管理外）
+data/                  記録（mycover.db）と生成画像（Git管理外。消さないこと）
 supabase/schema.sql    Supabase のテーブル・RLS（notes/クラウド構成手順.md 参照）
 start_dev.bat          開発用の起動ファイル
 set_api_key.bat        OpenAI の API キーを保存する
 test_models.bat        画像生成モデルの比較
+export_csv.bat         研究用の記録を CSV に書き出す
 notes/                 仕様・進捗・クラウド構成手順
 ```
 
 ## 開発用メモ
 
 - ダミー生成時のみ：入力欄に `#fail` と入れると生成失敗時の画面（D4）、`#ng` と入れると書き直しのお願い（D3）を確認できる。
-- 確定したジャケットはフェーズ1ではメモリ上だけに保存されるため、サーバーを再起動すると消える（フェーズ3で SQLite に保存）。
+- 記録を消して最初からやり直したいとき（テスト後など）は、サーバーを止めてから `data` フォルダを削除する。**展示の本番データは消さないこと。**

@@ -1,6 +1,6 @@
 """展示の状態を一元管理する（/desk と /display はポーリングでこの状態を取得する）。
 
-フェーズ1では確定済みジャケットはメモリ上のみ（再起動で消える）。フェーズ3で SQLite に保存する。
+確定済みジャケットと研究用の記録は SQLite（mycover/db.py）に保存し、起動時に読み込む。
 """
 import logging
 import secrets
@@ -9,6 +9,7 @@ import time
 import uuid
 
 from . import generator
+from .db import Database, iso_to_epoch, now_iso
 
 # 体験途中（未確定）の画面。ここで HOME を押すと中止確認（D8）を出す
 MAKING_SCREENS = {"D3", "D4", "D5"}
@@ -20,19 +21,53 @@ class ActionError(Exception):
 
 
 class Exhibit:
-    def __init__(self, cfg):
+    def __init__(self, cfg, db=None):
         self.cfg = cfg
         self.lock = threading.RLock()
-        self.covers = []          # 確定済みジャケット（新しいものが末尾）
+        self.db = db or Database()
+        self.covers = [self._cover_from_row(r) for r in self.db.load_covers()]  # 新しいものが末尾
         self.covers_rev = 0
-        self.next_jacket_no = 1
-        self.next_card_no = cfg["numbering"]["card_start_no"]
+        self.next_jacket_no = self.db.max_jacket_no() + 1
+        last_card = self.db.max_card_no()
+        self.next_card_no = cfg["numbering"]["card_start_no"] if last_card is None else last_card + 1
         self.gen_times = []       # 直近の生成時間（秒）
+        self.gallery_play_id = None
+        self._cleanup_images()
         self._reset_desk()
         self.audio = self._audio_idle()
         self.display = {"screen": "S1", "cover": None, "mode": None}
 
     # ------------------------------------------------------------------ 内部
+    @staticmethod
+    def _cover_from_row(r):
+        return {
+            "jacket_no": r["jacket_no"],
+            "image": r["image_file"],
+            "image_url": f"/media/images/{r['image_file']}",
+            "input": r["prompt"],
+            "confirmed_at": iso_to_epoch(r["confirmed_at"]),
+            "favorite_sec": r["favorite_sec"],
+            "token": r["token"],
+            "takeaway": r["takeaway"],
+            "card_no": r["card_no"],
+            "hidden": bool(r["hidden"]),
+        }
+
+    def _cleanup_images(self):
+        """確定済みジャケット以外の画像（前回の途中終了で残ったもの）を消す。"""
+        keep = {c["image"] for c in self.covers}
+        if generator.IMAGES_DIR.exists():
+            for path in generator.IMAGES_DIR.iterdir():
+                if path.is_file() and path.name not in keep:
+                    path.unlink()
+
+    def _end_gallery_play(self, action=None):
+        if self.gallery_play_id is not None:
+            if action:
+                self.db.gallery_event(self.gallery_play_id, action, self.audio["position"])
+            self.db.gallery_play_ended(self.gallery_play_id)
+            self.gallery_play_id = None
+
     def _reset_desk(self):
         self.desk = {"screen": "D1", "modal": None}
         self.session = None
@@ -69,13 +104,13 @@ class Exhibit:
     def _estimate(self):
         g = self.cfg["generation"]
         recent = self.gen_times[-g["estimate_window"]:]
-        if not recent:
-            return float(g["initial_estimate_sec"])
-        return sum(recent) / len(recent)
+        est = float(g["initial_estimate_sec"]) if not recent else sum(recent) / len(recent)
+        return max(est, float(g["min_pressing_sec"]))
 
     def _discard_session(self):
-        """中止：入力・生成画像・状態を完全に消去する。"""
+        """中止：入力・生成画像・状態を完全に消去する（記録には「中止された」事実と時間だけ残す）。"""
         if self.session:
+            self.db.session_aborted(self.session["id"])
             for att in self.session["attempts"]:
                 if att.get("image"):
                     generator.delete_image(att["image"])
@@ -83,6 +118,8 @@ class Exhibit:
         self.session = None
 
     def _show_s1(self):
+        if self.display["mode"] == "gallery":
+            self._end_gallery_play()
         self.display = {"screen": "S1", "cover": None, "mode": None}
         if self.audio["owner"] == "display":
             self._stop_audio()
@@ -144,6 +181,8 @@ class Exhibit:
                 if client == "display" and self.display["mode"] == "confirm":
                     self._show_s1()
                 elif client == "display" and self.display["mode"] == "gallery":
+                    if self.gallery_play_id is not None:
+                        self.db.gallery_event(self.gallery_play_id, "ended", a["position"])
                     a["position"] = 0.0
 
     def audio_action(self, action, value=None):
@@ -176,6 +215,8 @@ class Exhibit:
                 a["playing"] = True
             else:
                 raise ActionError(f"unknown audio action: {action}")
+            if self.display["mode"] == "gallery" and self.gallery_play_id is not None:
+                self.db.gallery_event(self.gallery_play_id, action, a["position"])
 
     def desk_action(self, action, data):
         with self.lock:
@@ -203,7 +244,8 @@ class Exhibit:
     def _act_start(self, _):
         self._require(*self.IDLE_SCREENS)
         self.session = {"id": uuid.uuid4().hex, "input": "", "attempts": [], "status": "idle",
-                        "started_at": time.time(), "favorite_sec": None}
+                        "started_at": time.time(), "favorite_sec": None, "rejections": 0, "failures": 0}
+        self.db.session_started(self.session["id"])
         self.desk = {"screen": "D3", "modal": None}
         if self.display["mode"] == "confirm":  # 前の人のサビ再生が残っていれば止める
             self._show_s1()
@@ -216,6 +258,7 @@ class Exhibit:
     def _act_gallery(self, _):
         self._require(*self.IDLE_SCREENS, "D10")
         if self.desk["screen"] == "D10":
+            self._end_gallery_play("back")
             self._show_s1()
         self.desk = {"screen": "D9", "modal": None}
 
@@ -225,6 +268,7 @@ class Exhibit:
             self.desk["modal"] = "abort"
             return
         if screen == "D10":
+            self._end_gallery_play("back")
             self._show_s1()
         if screen in ("D6", "D7a", "D7b"):
             self._finish()
@@ -280,6 +324,10 @@ class Exhibit:
             image, sec, error, rejected = None, None, str(e), None
         if image:
             log.info("生成しました（%.1f 秒）", sec)
+            # 「Now Pressing...」を最低限の時間は見せる
+            wait = s["gen_started_at"] + float(self.cfg["generation"]["min_pressing_sec"]) - time.time()
+            if wait > 0:
+                time.sleep(wait)
         elif rejected:
             log.info("入力が受け付けられず、書き直しをお願いしました")
         else:
@@ -298,11 +346,12 @@ class Exhibit:
                     self.desk = {"screen": "D3", "modal": None}
                 return
             if error:
+                s["failures"] = s.get("failures", 0) + 1
                 s["status"] = "error"
                 s["error"] = error
                 return
             self.gen_times.append(sec)
-            s["attempts"].append({"input": text, "image": image, "gen_sec": sec})
+            s["attempts"].append({"input": text, "image": image, "gen_sec": sec, "created_at": now_iso()})
             s["status"] = "done"
             if self.desk["screen"] == "D4":
                 self.desk["screen"] = "D5"
@@ -327,18 +376,21 @@ class Exhibit:
         if not s["attempts"]:
             raise ActionError("画像がありません")
         last = s["attempts"][-1]
+        confirmed_iso = now_iso()
         cover = {
             "jacket_no": self.next_jacket_no,
             "image_url": f"/media/images/{last['image']}",
             "image": last["image"],
             "input": last["input"],
-            "confirmed_at": time.time(),
+            "confirmed_at": iso_to_epoch(confirmed_iso),
+            "confirmed_iso": confirmed_iso,
             "favorite_sec": s.get("favorite_sec"),
-            "attempts": [{"input": a["input"], "gen_sec": a["gen_sec"]} for a in s["attempts"]],
             "token": secrets.token_urlsafe(16),
             "takeaway": None,
             "card_no": None,
+            "hidden": False,
         }
+        self.db.confirm_cover(cover, s)  # 失敗したら例外（画面は D5 のまま）
         # 確定しなかった画像は消す
         for a in s["attempts"][:-1]:
             generator.delete_image(a["image"])
@@ -363,6 +415,7 @@ class Exhibit:
     def _act_get_it_now(self, _):
         self._require("D6")
         self._cover_by_no(self.result["jacket_no"])["takeaway"] = "get_it_now"
+        self.db.set_takeaway(self.result["jacket_no"], "get_it_now")
         self.desk["screen"] = "D7a"
 
     def _act_take_it_home(self, _):
@@ -370,6 +423,7 @@ class Exhibit:
         cover = self._cover_by_no(self.result["jacket_no"])
         cover["takeaway"] = "take_it_home"
         cover["card_no"] = self.next_card_no
+        self.db.set_takeaway(cover["jacket_no"], "take_it_home", self.next_card_no)
         self.result["card_no"] = self.next_card_no
         self.next_card_no += 1
         self.desk["screen"] = "D7b"
@@ -391,5 +445,8 @@ class Exhibit:
     def _act_gallery_select(self, data):
         self._require("D9", "D10")
         cover = self._find_cover(int(data["jacket_no"]))
+        self._end_gallery_play("back" if self.desk["screen"] == "D10" else None)
         self.desk = {"screen": "D10", "modal": None, "jacket_no": cover["jacket_no"]}
         self._play_on_display(cover, mode="gallery")
+        self.gallery_play_id = self.db.gallery_play_started(cover["jacket_no"])
+        self.db.gallery_event(self.gallery_play_id, "select", 0.0)
