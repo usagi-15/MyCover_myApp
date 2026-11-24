@@ -56,6 +56,7 @@ py app.py
 
 API キーが無い間はダミー画像で動きます（起動時に「画像生成：dummy」と表示）。OpenAI を使うには、次のどちらかで API キーを渡します。**キーはコードや GitHub、チャットに書かないこと。**
 
+- **かんたん**：`set_api_key.bat` をダブルクリックし、キーを貼り付けて Enter（`config/secrets.json` に保存される）
 - **設定ファイル**：`config/secrets.example.json` をコピーして `config/secrets.json` という名前にし、`openai_api_key` にキーを書く（`secrets.json` は Git 管理外）
 - **環境変数**：`OPENAI_API_KEY` に設定する
 
@@ -68,7 +69,9 @@ setx OPENAI_API_KEY "sk-..."
 
 ### モデル・品質の比較
 
-使うモデルは `config/config.json` の `openai.model`（仮：`gpt-image-2`）。次のスクリプトで、生成にかかる時間と仕上がりを比べられます（API 利用料金がかかります）。結果の画像は `data/test/` に保存されます。
+使うモデルは `config/config.json` の `openai.model`（仮：`gpt-image-2`）。
+`test_models.bat` をダブルクリックすると、候補のモデルで順に生成して秒数を表示し、画像のフォルダ（`data\test`）を開きます。
+コマンドで実行する場合は、次のスクリプトで、生成にかかる時間と仕上がりを比べられます（API 利用料金がかかります）。結果の画像は `data/test/` に保存されます。
 
 ```bat
 py tools/test_generate.py "深い海の底。一筋の光がさしている。" --models gpt-image-2 gpt-image-2.5-sunburst gpt-image-2.5-flare
@@ -102,6 +105,8 @@ tools/test_generate.py 画像生成の動作確認・モデル比較
 data/                  生成画像などの実行時データ（Git管理外）
 supabase/schema.sql    Supabase のテーブル・RLS（notes/クラウド構成手順.md 参照）
 start_dev.bat          開発用の起動ファイル
+set_api_key.bat        OpenAI の API キーを保存する
+test_models.bat        画像生成モデルの比較
 notes/                 仕様・進捗・クラウド構成手順
 ```
 

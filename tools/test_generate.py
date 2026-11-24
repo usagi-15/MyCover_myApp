@@ -1,6 +1,8 @@
 """画像生成の動作確認・モデル比較用（展示PCや開発PCで実行する）。
 
 使い方（プロジェクトのフォルダで）:
+  test_models.bat をダブルクリック（下の --compare と同じ）
+  py tools/test_generate.py --compare
   py tools/test_generate.py "深い海の底。一筋の光がさしている。"
   py tools/test_generate.py "深い海の底" --model gpt-image-2.5-flare --quality low
   py tools/test_generate.py "深い海の底" --models gpt-image-2 gpt-image-2.5-sunburst gpt-image-2.5-flare
@@ -19,10 +21,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from mycover import generator  # noqa: E402
 from mycover.config import DATA_DIR, load_config  # noqa: E402
 
+DEFAULT_TEXT = "深い海の底。一筋の光がさしている。"
+# 比較の候補（openai ライブラリに記載のあるモデルから。使えるかどうかは実行して確認する）
+COMPARE_MODELS = ["gpt-image-2", "gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("text", help="鑑賞者の入力を想定した言葉")
+    ap.add_argument("text", nargs="?", default=DEFAULT_TEXT, help="鑑賞者の入力を想定した言葉")
+    ap.add_argument("--compare", action="store_true", help=f"候補のモデル {COMPARE_MODELS} を順に試す")
     ap.add_argument("--model", help="config の openai.model の代わりに使うモデル")
     ap.add_argument("--models", nargs="+", help="複数のモデルを順に試す")
     ap.add_argument("--quality", help="low / medium / high など")
@@ -57,7 +64,10 @@ def main():
     out_dir = DATA_DIR / "test"
     out_dir.mkdir(parents=True, exist_ok=True)
     generator.IMAGES_DIR = out_dir
-    for model in args.models or [args.model or cfg["openai"]["model"]]:
+    models = COMPARE_MODELS if args.compare else (args.models or [args.model or cfg["openai"]["model"]])
+    results = []
+    for model in models:
+        print(f"{model} で生成中…（1〜2分かかることがあります）", flush=True)
         c = copy.deepcopy(cfg)
         c["openai"]["model"] = model
         if args.quality:
@@ -67,11 +77,18 @@ def main():
             name, sec = generator.generate(c, args.text, 0)
             stamped = out_dir / f"{time.strftime('%H%M%S')}_{model}_{c['openai']['quality']}.jpg"
             (out_dir / name).rename(stamped)
-            print(f"[OK] {model} / {c['openai']['quality']}: {sec:.1f} 秒 → {stamped}")
+            line = f"[OK]   {model} / {c['openai']['quality']}: {sec:.1f} 秒 → {stamped.name}"
         except generator.InputRejected as e:
-            print(f"[書き直し] {model}: {e}")
+            line = f"[書き直し] {model}: {e}"
         except generator.GenerationError as e:
-            print(f"[失敗] {model}: {e}（{time.monotonic() - started:.1f} 秒）")
+            line = f"[失敗] {model}: {e}（{time.monotonic() - started:.1f} 秒）"
+        print(line, flush=True)
+        results.append(line)
+    print()
+    print("===== 結果のまとめ（この部分をコピーして共有してください。API キーは含まれません） =====")
+    for line in results:
+        print(line)
+    print(f"画像の保存先：{out_dir}")
     return 0
 
 
