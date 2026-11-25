@@ -49,7 +49,7 @@ py app.py
 | --- | --- |
 | 「このサイトにアクセスできません」 | サーバーの窓が開いていて「Running on ...」と出ているか。窓を閉じると止まる |
 | `py` が見つからない | python.org 版の Python をインストールしたか |
-| `No module named flask` など | `py -m pip install -r requirements.txt` を実行したか |
+| `No module named flask`・`No module named 'httpx'` など | そのPCにライブラリが入っていない。プロジェクトのフォルダでコマンドプロンプトを開き `py -m pip install -r requirements.txt` を実行（`start_exhibit.bat` はインストールをしないので、初めてのPCでは先にこれを1回） |
 | サーバーの窓に赤いエラー | エラー文の最後の数行を共有してください |
 | 音が出ない | `start_dev.bat` から開いたか（自動再生を許可するオプション付きで Chrome を開く）。または一度画面をクリックする |
 

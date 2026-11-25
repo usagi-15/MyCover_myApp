@@ -9,9 +9,12 @@ import logging
 import os
 import threading
 
-import httpx
-
 from .config import CONFIG_DIR
+
+try:
+    import httpx  # openai ライブラリと一緒に入る。無くてもサーバー自体は起動できるようにする
+except ImportError:  # pragma: no cover
+    httpx = None
 
 log = logging.getLogger("mycover.supabase")
 
@@ -40,7 +43,7 @@ class Supabase:
 
     @property
     def enabled(self):
-        return bool(self.key)
+        return bool(self.key) and httpx is not None
 
     def _headers(self, extra=None):
         h = {"apikey": self.key}
@@ -108,6 +111,9 @@ class SyncWorker:
         self._thread = None
 
     def start(self):
+        if httpx is None:
+            log.warning("ライブラリ httpx が入っていないため、クラウドへの送信は行いません（py -m pip install -r requirements.txt で入れてください）")
+            return
         if not self.client.enabled:
             log.warning("Supabase の秘密キーが未設定のため、クラウドへの送信は行いません（展示PC内には記録されます）")
             return

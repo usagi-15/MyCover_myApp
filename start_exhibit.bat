@@ -26,6 +26,16 @@ if not exist %CHROME% (
   exit /b 1
 )
 
+rem ---- Check that the libraries are installed -----------------------------
+py -c "import flask, PIL, qrcode, openai, httpx" 2>nul
+if errorlevel 1 (
+  echo [ERROR] Some libraries are not installed on this PC.
+  echo         Open Command Prompt in this folder and run:
+  echo           py -m pip install -r requirements.txt
+  pause
+  exit /b 1
+)
+
 rem ---- Start the server (skip if it is already running) --------------------
 curl -s -o nul http://127.0.0.1:%PORT%/ && goto ready
 echo Starting server...
