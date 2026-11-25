@@ -200,7 +200,7 @@ footer{border-top:1px solid var(--rule)}
             <tr><td>展示PC <code>data/images/</code></td><td>確定したジャケット画像</td><td>Flask が書き、2つの画面が表示</td></tr>
             <tr><td>展示PC <code>data/cards/</code></td><td>カード100枚のトークン・URL・QR 画像</td><td><code>make_cards</code> が作る。要バックアップ</td></tr>
             <tr><td>Supabase Storage</td><td>ジャケット画像（公開読み取り）</td><td>展示PCが書き、スマホが表示</td></tr>
-            <tr><td>Supabase DB</td><td>covers（公開用の列）、cards、page_views</td><td>展示PCが書き、スマホは関数経由で1件だけ読む</td></tr>
+            <tr><td>Supabase DB</td><td>covers（公開用の列）、cards、page_views、page_events（ページ内の操作）</td><td>展示PCが書き、スマホは関数経由で1件だけ読む</td></tr>
             <tr><td>GitHub Pages</td><td>スマホ用ページ、楽曲 MP3</td><td>作者が置く</td></tr>
           </tbody>
         </table>
@@ -242,7 +242,7 @@ footer{border-top:1px solid var(--rule)}
         </tbody>
       </table>
     </div>
-    <p class="note">2026年11月25日時点の構成。予備モード・無操作タイムアウト・/admin（フェーズ5）は未実装です。</p>
+    <p class="note">2026年11月25日時点の構成（フェーズ1〜5と、特設エリア・page_events を反映）。展示PCの <code>/admin</code> で、状態のリセット・予備モード・非表示の切り替えができます。</p>
   </div>
 </footer>
 </body>
