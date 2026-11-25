@@ -9,6 +9,13 @@ window.MYCOVER = {
   },
   jacketDigits: 4,
   cardDigits: 4,
+  // 特設エリア（M3）。公開日を過ぎると自動で切り替わる。展示PCの config/config.json の release と同じ日付にする
+  release: {
+    officialJacketAt: null, // TODO: 公式ジャケット公開日時（例 "2026-12-20T00:00:00+09:00"）。null のあいだは「近日公開」
+    mvAt: null, // TODO: MV 公開日時
+    officialJacketImage: "official.jpg", // 公式ジャケット画像（このページと同じ場所に置く）
+    mvUrl: "", // TODO: MV の YouTube の URL
+  },
   authorUrl: "", // TODO: 『My Cover』・作者HP の URL（空のあいだはリンクを出さない）
   exhibition: [
     "デザイン情報学科３年ゼミ展",

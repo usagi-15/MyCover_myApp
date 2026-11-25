@@ -48,6 +48,40 @@
     <div class="info" id="info"></div>
   </section>
 
+  <!-- M3 特設エリア（M1・M2 の下）。公開日の前はカウントダウン、後は公式ジャケットと MV -->
+  <section id="m3" class="panel m3 hidden">
+    <h2 class="m3-title">Special</h2>
+    <p class="m3-sub" id="m3-sub"></p>
+
+    <div class="m3-item">
+      <p class="m3-label">公式ジャケット</p>
+      <div id="official-before">
+        <p class="m3-date" id="official-date"></p>
+        <p class="countdown" id="official-count"></p>
+      </div>
+      <div id="official-after" class="hidden">
+        <!-- 自分のジャケットと公式ジャケットを並べて見る（あなた盤／公式盤） -->
+        <div class="compare" id="compare">
+          <figure id="mine-fig"><img id="mine" alt="あなた盤"><figcaption>あなた盤</figcaption></figure>
+          <figure><img id="official" alt="公式盤"><figcaption>公式盤</figcaption></figure>
+        </div>
+        <a class="download sub" id="official-dl" download>公式ジャケットを保存</a>
+        <p class="hint">画像を長押ししても保存できます</p>
+      </div>
+    </div>
+
+    <div class="m3-item">
+      <p class="m3-label">MV</p>
+      <div id="mv-before">
+        <p class="m3-date" id="mv-date"></p>
+        <p class="countdown" id="mv-count"></p>
+      </div>
+      <div id="mv-after" class="hidden">
+        <a class="download sub" id="mv-link" href="#">MV を見る（YouTube）</a>
+      </div>
+    </div>
+  </section>
+
   <!-- エラー -->
   <section id="error" class="panel center hidden">
     <p class="msg" id="error-msg"></p>

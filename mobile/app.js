@@ -8,6 +8,8 @@
 
   const show = (id) => {
     ["loading", "m1", "m2", "error"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+    // 特設エリアは M1・M2 のどちらで来た人にも同じように見せる（比較の条件をそろえる）
+    if (id === "m1" || id === "m2") setupSpecial(id === "m1" ? $("jacket").src : null);
   };
   const pad = (n, d) => String(n).padStart(d, "0");
   const fmt = (sec) => {
@@ -31,6 +33,88 @@
     fetch(`${C.supabaseUrl}/rest/v1/page_views`, {
       method: "POST", headers: { ...headers, Prefer: "return=minimal" }, body: JSON.stringify(body), keepalive: true,
     }).catch(() => {});
+  }
+
+  // ページ内の操作の記録（mp3_download / official_download / mv_click / compare_view）
+  function logEvent(event) {
+    const body = cardToken ? { event, card_token: cardToken } : { event, token };
+    return fetch(`${C.supabaseUrl}/rest/v1/page_events`, {
+      method: "POST", headers: { ...headers, Prefer: "return=minimal" }, body: JSON.stringify(body), keepalive: true,
+    }).catch(() => {});
+  }
+
+  // ---------------------------------------------------------------- M3 特設エリア
+  const WEEK = "日月火水木金土";
+  const dateText = (date) => { // 端末の設定によらず日本時間で表示
+    const d = new Date(date.getTime() + 9 * 3600e3);
+    return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${WEEK[d.getUTCDay()]}）`;
+  };
+  function countdownText(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const d = Math.floor(s / 86400);
+    const hms = [Math.floor(s / 3600) % 24, Math.floor(s / 60) % 60, s % 60].map((n) => pad(n, 2)).join(":");
+    return d > 0 ? `あと ${d}日 ${hms}` : `あと ${hms}`;
+  }
+
+  let specialTimer = null;
+  let compareLogged = false;
+  function setupSpecial(myJacketUrl) {
+    const r = C.release || {};
+    const official = r.officialJacketAt ? new Date(r.officialJacketAt) : null;
+    const mv = r.mvAt ? new Date(r.mvAt) : null;
+    $("m3-sub").textContent = `${C.track.title} の公式ジャケットと MV が公開されます`;
+
+    $("official").addEventListener("error", () => {
+      // 公式ジャケット画像をまだ置いていないとき
+      $("official").replaceWith(Object.assign(document.createElement("div"), { className: "official-empty", textContent: "準備中" }));
+      $("official-dl").classList.add("disabled");
+    });
+    $("official").src = r.officialJacketImage;
+    $("official-dl").href = r.officialJacketImage;
+    $("official-dl").setAttribute("download", `${C.track.title}_official.jpg`);
+    $("official-dl").addEventListener("click", () => logEvent("official_download"));
+    if (myJacketUrl) {
+      $("mine").src = myJacketUrl;
+    } else {
+      $("mine-fig").remove(); // カードがまだひもづいていない人は公式盤だけ
+      $("compare").classList.add("single");
+    }
+    $("mv-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!r.mvUrl) return;
+      // クリックを記録してから YouTube へ
+      Promise.race([logEvent("mv_click"), new Promise((ok) => setTimeout(ok, 800))]).then(() => { location.href = r.mvUrl; });
+    });
+
+    // 比較（あなた盤／公式盤）が画面に入ったら1回だけ記録
+    if (myJacketUrl && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((en) => en.isIntersecting) && !compareLogged && !$("official-after").classList.contains("hidden")) {
+          compareLogged = true;
+          logEvent("compare_view");
+          io.disconnect();
+        }
+      }, { threshold: 0.6 });
+      io.observe($("compare"));
+    }
+
+    const tick = () => {
+      const now = Date.now();
+      const officialOpen = official && now >= official.getTime();
+      const mvOpen = mv && now >= mv.getTime();
+      $("official-before").classList.toggle("hidden", !!officialOpen);
+      $("official-after").classList.toggle("hidden", !officialOpen);
+      $("official-date").textContent = official ? `${dateText(official)} 公開` : "近日公開";
+      $("official-count").textContent = official && !officialOpen ? countdownText(official - now) : "";
+      $("mv-before").classList.toggle("hidden", !!(mvOpen && r.mvUrl));
+      $("mv-after").classList.toggle("hidden", !(mvOpen && r.mvUrl));
+      $("mv-date").textContent = mv ? `${dateText(mv)} 公開` : "近日公開";
+      $("mv-count").textContent = mv && !mvOpen ? countdownText(mv - now) : "";
+    };
+    tick();
+    clearInterval(specialTimer);
+    specialTimer = setInterval(tick, 1000);
+    $("m3").classList.remove("hidden");
   }
 
   function fillInfo(el) {
@@ -70,6 +154,7 @@
     const seek = $("seek");
     const dl = $("download");
     dl.href = C.track.mp3;
+    dl.addEventListener("click", () => logEvent("mp3_download"));
     dl.setAttribute("download", `${C.track.title}.mp3`);
     let dragging = false;
     const update = () => {

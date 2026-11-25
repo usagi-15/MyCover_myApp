@@ -36,12 +36,23 @@ create table if not exists public.page_views (
 );
 -- IP アドレスなど個人を特定する情報は記録しない
 
+-- スマホ用ページ内の操作（改訂版の指示書 7章）。公式公開の前後で行動がどう変わるかを見る
+create table if not exists public.page_events (
+  id         bigint      generated always as identity primary key,
+  event      text        not null check (event in ('mp3_download', 'official_download', 'mv_click', 'compare_view')),
+  token      text        check (char_length(token) <= 64),
+  card_token text        check (char_length(card_token) <= 64),
+  created_at timestamptz not null default now(),
+  check ((token is null) <> (card_token is null))   -- どちらか一方だけ
+);
+
 -- ---------------------------------------------------------------- 権限と RLS
 alter table public.covers     enable row level security;
 alter table public.cards      enable row level security;
 alter table public.page_views enable row level security;
+alter table public.page_events enable row level security;
 
-revoke all on public.covers, public.cards, public.page_views from anon, authenticated;
+revoke all on public.covers, public.cards, public.page_views, public.page_events from anon, authenticated;
 
 -- covers：anon は hidden=false の行の公開用カラムだけ読める
 grant select (jacket_no, image_url, prompt, confirmed_at) on public.covers to anon;
@@ -55,6 +66,12 @@ create policy covers_public_read on public.covers
 grant insert (kind, token, card_token) on public.page_views to anon;
 drop policy if exists page_views_insert on public.page_views;
 create policy page_views_insert on public.page_views
+  for insert to anon with check (true);
+
+-- page_events：anon は書き込み（insert）のみ。読み取りは不可
+grant insert (event, token, card_token) on public.page_events to anon;
+drop policy if exists page_events_insert on public.page_events;
+create policy page_events_insert on public.page_events
   for insert to anon with check (true);
 
 -- ---------------------------------------------------------------- スマホ用ページが呼ぶ関数（RPC）

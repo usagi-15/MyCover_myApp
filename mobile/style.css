@@ -61,3 +61,20 @@ main { flex: 1; padding: 0 18px; }
 
 .foot { text-align: center; padding: 30px 0 36px; }
 .foot a { color: var(--fg); font-size: 15px; }
+
+/* M3 特設エリア */
+.m3 { margin-top: 18px; }
+.m3-title { margin: 0; font-size: 28px; font-weight: 400; letter-spacing: .04em; }
+.m3-sub { margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.m3-item { border-top: 1px solid rgba(255,255,255,.25); margin-top: 18px; padding-top: 16px; }
+.m3-label { margin: 0; font-size: 13px; color: var(--muted); }
+.m3-date { margin: 6px 0 0; font-size: 20px; }
+.countdown { margin: 4px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.countdown:empty { display: none; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.compare.single { grid-template-columns: 1fr; }
+.compare figure { margin: 0; }
+.compare img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #2a2a44; -webkit-touch-callout: default; }
+.compare figcaption { text-align: center; font-size: 13px; margin-top: 6px; }
+.download.sub { margin-top: 18px; background: none; color: var(--fg); border: 1px solid var(--line); font-size: 15px; }
+.official-empty { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1 / 1; background: #2a2a44; color: var(--muted); font-size: 14px; }
