@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Cover システム構成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=Noto+Sans+JP:wght@400;500&display=swap">
+<style>
+/* VOICE: 展示作品の裏側を、作者とゼミの仲間に静かに見せる技術メモ
+   IDEA: 展示の画面と同じ濃紺と白い細線の「設計図」
+   PICTURE: 会場・クラウド・スマホの3区画を横切るデータの流れ（1枚のSVG）
+   COLOUR and TYPE: 濃紺 #06061f の一面、白い線と明朝、秘密キーの経路だけ薄紫
+   LAYOUT: 結論の一文 → 大きな構成図 → 体験の流れ → データと鍵の表 */
+:root{color-scheme:dark;--bg:#06061f;--ink:#f3f1ff;--muted:#b9b6d6;--line:rgba(243,241,255,.5);--rule:rgba(243,241,255,.18);--accent:#c7b6ff;--panel:#0d0d2e}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Noto Sans JP",system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(28px,4vw,64px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(32px,5vw,48px)}
+h2{font-size:clamp(24px,3vw,32px);margin-bottom:18px}
+.lead{max-width:62ch;color:var(--muted);margin:14px 0 0}
+figure{margin:28px 0 0}
+figure svg{display:block;width:100%;height:auto;color:var(--ink)}
+figcaption{color:var(--muted);font-size:14px;margin-top:10px;max-width:80ch}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--rule)}
+th{font-weight:500;color:var(--muted);font-size:13px}
+td b{font-weight:500}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}
+.key{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(24px,4vw,56px)}
+.note{font-size:14px;color:var(--muted)}
+footer{border-top:1px solid var(--rule)}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--rule)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--muted);font-size:12px}.stack td:empty{display:none}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <h1>『My Cover』のシステム構成</h1>
+    <p class="lead">展示PCの中の Flask サーバーが、2つの画面と体験の状態をまとめて管理し、画像の生成は OpenAI に、持ち帰り用のデータは Supabase に送ります。鑑賞者のスマホは GitHub Pages のページから Supabase を読みに行くので、展示PCに直接つながることはありません。</p>
+
+    <figure>
+      <svg viewBox="0 0 1200 760" role="img" aria-label="展示PCの Flask サーバーが机と大型モニターの画面を管理し、OpenAI で画像を生成、Supabase に送信する。鑑賞者のスマホは GitHub Pages のページから Supabase を読む構成図">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+          <marker id="ahk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#c7b6ff"/></marker>
+        </defs>
+
+        <g fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 5">
+          <rect x="16" y="60" width="584" height="684" rx="18"/>
+          <rect x="630" y="60" width="260" height="684" rx="18"/>
+          <rect x="980" y="60" width="204" height="684" rx="18"/>
+        </g>
+        <g font-family="Shippori Mincho, Yu Mincho, serif" font-size="15" fill="currentColor" fill-opacity=".75">
+          <text x="156" y="88">会場｜展示PC（Windows 11）</text>
+          <text x="650" y="88">クラウド（HTTPS）</text>
+          <text x="1000" y="88">鑑賞者のスマホ</text>
+        </g>
+
+        <path d="M136 190 V44 H1085 V250" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-dasharray="6 5" marker-end="url(#ah)"/>
+        <text x="610" y="34" text-anchor="middle" font-size="12.5" fill="currentColor">QR コード（Get It Now）／カード（Take It Home）で受け渡し</text>
+
+        <g fill="#0d0d2e" stroke="currentColor" stroke-width="1.2">
+          <rect x="36" y="190" width="200" height="100" rx="10"/>
+          <rect x="36" y="344" width="200" height="100" rx="10"/>
+          <rect x="36" y="560" width="200" height="100" rx="10"/>
+          <rect x="346" y="100" width="228" height="560" rx="14"/>
+          <rect x="650" y="130" width="220" height="100" rx="10"/>
+          <rect x="650" y="300" width="220" height="230" rx="10"/>
+          <rect x="650" y="580" width="220" height="110" rx="10"/>
+          <rect x="1000" y="250" width="170" height="390" rx="26"/>
+        </g>
+        <path d="M36 360 Q136 374 236 360" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+
+        <g fill="none" stroke="currentColor" stroke-opacity=".45">
+          <rect x="360" y="158" width="200" height="48" rx="6"/>
+          <rect x="360" y="214" width="200" height="48" rx="6"/>
+          <rect x="360" y="300" width="200" height="48" rx="6"/>
+          <rect x="360" y="370" width="200" height="48" rx="6"/>
+          <rect x="360" y="426" width="200" height="48" rx="6"/>
+          <rect x="360" y="586" width="200" height="48" rx="6"/>
+        </g>
+
+        <g fill="currentColor" font-size="12">
+          <g font-family="Shippori Mincho, Yu Mincho, serif" font-size="15" font-weight="600">
+            <text x="136" y="220" text-anchor="middle">机のモニター</text>
+            <text x="136" y="392" text-anchor="middle">data フォルダ</text>
+            <text x="136" y="590" text-anchor="middle">大型モニター（65型）</text>
+            <text x="460" y="126" text-anchor="middle">Flask サーバー</text>
+            <text x="760" y="160" text-anchor="middle">OpenAI API</text>
+            <text x="760" y="330" text-anchor="middle">Supabase</text>
+            <text x="760" y="610" text-anchor="middle">GitHub Pages</text>
+            <text x="1085" y="290" text-anchor="middle">スマホ用ページ</text>
+          </g>
+          <text x="136" y="244" text-anchor="middle">Chrome ／desk</text>
+          <text x="136" y="264" text-anchor="middle" fill-opacity=".7">キーボード・マウスで操作</text>
+          <text x="136" y="414" text-anchor="middle">mycover.db（SQLite）</text>
+          <text x="136" y="432" text-anchor="middle" fill-opacity=".7">images ／ cards</text>
+          <text x="136" y="614" text-anchor="middle">Chrome ／display</text>
+          <text x="136" y="634" text-anchor="middle" fill-opacity=".7">ギャラリー・Now Playing</text>
+          <text x="460" y="144" text-anchor="middle" fill-opacity=".7">app.py（127.0.0.1:5000）</text>
+
+          <text x="372" y="178" font-weight="600">generator.py</text><text x="372" y="196" fill-opacity=".7">画像生成・入力チェック</text>
+          <text x="372" y="234" font-weight="600">state.py</text><text x="372" y="252" fill-opacity=".7">画面・体験・音を一元管理</text>
+          <text x="372" y="320" font-weight="600">qrcode</text><text x="372" y="338" fill-opacity=".7">QR 画像をつくる</text>
+          <text x="372" y="390" font-weight="600">db.py</text><text x="372" y="408" fill-opacity=".7">確定と研究用の記録</text>
+          <text x="372" y="446" font-weight="600">supabase.py</text><text x="372" y="464" fill-opacity=".7">クラウドへ送信・再送</text>
+          <text x="372" y="606" font-weight="600">templates ／ static</text><text x="372" y="624" fill-opacity=".7">2つの画面を配信</text>
+
+          <text x="760" y="184" text-anchor="middle">gpt-image-2.6-sunburst</text>
+          <text x="760" y="204" text-anchor="middle" fill-opacity=".7">モデレーション</text>
+          <text x="666" y="362">Storage：ジャケット画像</text>
+          <text x="666" y="388">DB：covers・cards</text>
+          <text x="666" y="406">　　page_views</text>
+          <text x="666" y="432">RPC：トークン→1件</text>
+          <text x="666" y="458" fill-opacity=".7">RLS で公開範囲を制限</text>
+          <text x="666" y="484" fill-opacity=".7">無料プラン</text>
+          <text x="760" y="634" text-anchor="middle">usagi-15.github.io/mycover</text>
+          <text x="760" y="656" text-anchor="middle" fill-opacity=".7">index.html・B7F.mp3</text>
+          <text x="1085" y="330" text-anchor="middle">M1：ジャケットと曲</text>
+          <text x="1085" y="352" text-anchor="middle">M2：未ひも付けカード</text>
+          <text x="1085" y="394" text-anchor="middle" fill-opacity=".7">長押しで画像を保存</text>
+          <text x="1085" y="414" text-anchor="middle" fill-opacity=".7">Download（MP3）</text>
+          <text x="1085" y="434" text-anchor="middle" fill-opacity=".7">入力したプロンプト</text>
+        </g>
+
+        <g stroke="currentColor" stroke-width="1.3" fill="none">
+          <line x1="236" y1="240" x2="346" y2="240" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <line x1="236" y1="394" x2="346" y2="394" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <line x1="236" y1="610" x2="346" y2="610" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <line x1="574" y1="182" x2="650" y2="182" marker-start="url(#ah)" marker-end="url(#ah)"/>
+          <line x1="1000" y1="420" x2="870" y2="420" marker-end="url(#ah)"/>
+          <line x1="1000" y1="610" x2="870" y2="610" marker-end="url(#ah)"/>
+          <line x1="760" y1="580" x2="760" y2="532" marker-end="url(#ah)" stroke-dasharray="3 4"/>
+        </g>
+        <line x1="574" y1="450" x2="650" y2="450" stroke="#c7b6ff" stroke-width="1.8" marker-end="url(#ahk)"/>
+
+        <g fill="currentColor" font-size="11.5" text-anchor="middle">
+          <text x="291" y="230">操作</text>
+          <text x="291" y="258" fill-opacity=".7">0.5秒ごと取得</text>
+          <text x="291" y="384">読み書き</text>
+          <text x="291" y="600">状態を取得</text>
+          <text x="291" y="628" fill-opacity=".7">再生位置を報告</text>
+          <text x="612" y="172">生成依頼</text>
+          <text x="612" y="200" fill-opacity=".7">画像</text>
+          <text x="935" y="410">取得・閲覧記録</text>
+          <text x="935" y="438" fill-opacity=".7">公開キー</text>
+          <text x="935" y="600">ページ・MP3</text>
+          <text x="768" y="553" text-anchor="start">Actions</text>
+          <text x="768" y="569" text-anchor="start" fill-opacity=".7">2日おき</text>
+        </g>
+        <g fill="#c7b6ff" font-size="11.5" text-anchor="middle">
+          <text x="612" y="440">画像・確定</text>
+          <text x="612" y="468">秘密キー</text>
+        </g>
+      </svg>
+      <figcaption>展示PCの中は Flask サーバー1つ。机と大型モニターは同じPCの2つの Chrome ウィンドウで、どちらもサーバーに0.5秒ごとに状態を聞きに行きます。外へ出る通信は OpenAI と Supabase への HTTPS だけで、<span class="key">薄紫の線</span>は秘密キーを使う唯一の経路です。</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section class="band">
+  <div class="wrap">
+    <h2>体験の流れと、そのときシステムで起きること</h2>
+    <div class="scroll">
+      <table class="stack">
+        <thead><tr><th>画面</th><th>鑑賞者の操作</th><th>システムで起きること</th><th>音を鳴らす画面</th></tr></thead>
+        <tbody>
+          <tr><td><b>D1</b> ホーム</td><td>Start を押す</td><td>体験（session）を開始し、開始時刻を SQLite に記録</td><td>なし</td></tr>
+          <tr><td><b>D3</b> 聴く・言葉にする</td><td>曲を聴きながら言葉を入力</td><td>文字数と NG ワードをその場で確認</td><td>机のモニター</td></tr>
+          <tr><td><b>D4</b> 生成する</td><td>「これで生成する」</td><td>OpenAI のモデレーション → 画像生成。最低5秒は Now Pressing を表示。断られたら D3 に戻して書き直しをお願い</td><td>机のモニター</td></tr>
+          <tr><td><b>D5</b> 完成（確認）</td><td>作り直す／もう一度試す</td><td>各回の入力と生成時間をメモリに保持（確定まで保存しない）</td><td>机のモニター</td></tr>
+          <tr><td><b>D5 → D6</b> 確定</td><td>「完成したジャケットから再生する」</td><td>No. を付けて SQLite に保存 → 大型モニターが S2 でサビを再生 → すぐに Supabase へ画像と情報を送信</td><td>大型モニター</td></tr>
+          <tr><td><b>D7a</b> Get It Now</td><td>QR をスマホで読む</td><td>スマホ用ページがトークンでジャケットを1件取得。届いていなければ3秒ごとに読み直す</td><td>大型モニター</td></tr>
+          <tr><td><b>D7b</b> Take It Home</td><td>カードを取る</td><td>カード No. を割り当て、Supabase でカードとジャケットをひも付け（100枚まで）</td><td>大型モニター</td></tr>
+          <tr><td><b>D8</b> 中止</td><td>完成前に HOME →「はい」</td><td>入力と生成画像を消去。記録には「中止」と時刻だけを残す</td><td>なし</td></tr>
+          <tr><td><b>D9 → D10</b> Gallery</td><td>ジャケットを選んで再生・操作</td><td>大型モニターが S2 で再生し、机の再生バーがそれを操作。再生と操作を記録</td><td>大型モニター</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">音は常に1つの画面だけが鳴らします。鳴らしている画面が再生位置をサーバーに報告し、もう一方の画面はそれを表示・操作します。</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap grid2">
+    <div>
+      <h2>データの置き場所</h2>
+      <div class="scroll">
+        <table class="stack">
+          <thead><tr><th>場所</th><th>中身</th><th>書く／読む</th></tr></thead>
+          <tbody>
+            <tr><td>展示PC <code>data/mycover.db</code></td><td>確定したジャケット、各回の入力と生成時間、体験の開始・中止・確定、ギャラリーの操作</td><td>Flask が書く。<code>export_csv</code> で CSV に</td></tr>
+            <tr><td>展示PC <code>data/images/</code></td><td>確定したジャケット画像</td><td>Flask が書き、2つの画面が表示</td></tr>
+            <tr><td>展示PC <code>data/cards/</code></td><td>カード100枚のトークン・URL・QR 画像</td><td><code>make_cards</code> が作る。要バックアップ</td></tr>
+            <tr><td>Supabase Storage</td><td>ジャケット画像（公開読み取り）</td><td>展示PCが書き、スマホが表示</td></tr>
+            <tr><td>Supabase DB</td><td>covers（公開用の列）、cards、page_views</td><td>展示PCが書き、スマホは関数経由で1件だけ読む</td></tr>
+            <tr><td>GitHub Pages</td><td>スマホ用ページ、楽曲 MP3</td><td>作者が置く</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">作り直し回数や各回の入力など研究用の細かい記録は、クラウドに送らず展示PCだけに残します。IP アドレスなど個人を特定する情報は記録しません。</p>
+    </div>
+    <div>
+      <h2>鍵（キー）の扱い</h2>
+      <div class="scroll">
+        <table class="stack">
+          <thead><tr><th>キー</th><th>置き場所</th><th>できること</th></tr></thead>
+          <tbody>
+            <tr><td>OpenAI API キー</td><td>展示PC <code>config/secrets.json</code></td><td>画像生成・モデレーション（利用料金がかかる）</td></tr>
+            <tr><td class="key">Supabase 秘密キー</td><td>展示PC <code>config/secrets.json</code></td><td>画像のアップロード、covers・cards の書き込み</td></tr>
+            <tr><td>Supabase 公開キー</td><td>スマホ用ページ <code>config.js</code></td><td>非表示でないジャケットの公開列を読む、関数で1件取得、page_views に書く</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note"><code>secrets.json</code> は GitHub に上がりません。秘密キーと OpenAI のキーは、チャットやページに書かないこと。</p>
+    </div>
+  </div>
+</section>
+
+<footer class="band">
+  <div class="wrap">
+    <h2>ファイルの対応</h2>
+    <div class="scroll">
+      <table class="stack">
+        <thead><tr><th>役割</th><th>ファイル</th></tr></thead>
+        <tbody>
+          <tr><td>サーバーの入口</td><td><code>app.py</code></td></tr>
+          <tr><td>状態管理（画面・体験・音・番号）</td><td><code>mycover/state.py</code></td></tr>
+          <tr><td>画像生成と入力チェック</td><td><code>mycover/generator.py</code>、<code>prompts/</code>、<code>config/ng_words.txt</code></td></tr>
+          <tr><td>記録（SQLite）</td><td><code>mycover/db.py</code></td></tr>
+          <tr><td>クラウドへの送信</td><td><code>mycover/supabase.py</code>、<code>supabase/schema.sql</code></td></tr>
+          <tr><td>机と大型モニターの画面</td><td><code>templates/</code>、<code>static/css/</code>、<code>static/js/</code></td></tr>
+          <tr><td>スマホ用ページ</td><td><code>mobile/</code>（GitHub Pages 用リポジトリ <code>usagi-15/mycover</code> に置く）</td></tr>
+          <tr><td>設定値</td><td><code>config/config.json</code>（PCごとの上書きは <code>config.local.json</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">2026年11月25日時点の構成。予備モード・無操作タイムアウト・/admin（フェーズ5）は未実装です。</p>
+  </div>
+</footer>
+</body>
+</html>
