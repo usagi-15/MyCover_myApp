@@ -14,6 +14,7 @@ import io
 import json
 import logging
 import os
+import random
 import time
 import unicodedata
 import uuid
@@ -143,14 +144,38 @@ def build_prompt(cfg, text):
 
 
 # ------------------------------------------------------------------ 生成
-def generate(cfg, text, attempt_index):
+BACKUP_DIR = ROOT / "static" / "backup"
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def backup_images():
+    """予備モードで使う作例ジャケット。static/backup/ の画像 → 無ければ作成例カルーセルの画像。"""
+    files = sorted(p for p in BACKUP_DIR.glob("*") if p.suffix.lower() in _IMAGE_EXTS) if BACKUP_DIR.exists() else []
+    if files:
+        return files
+    from .config import load_samples
+    return [ROOT / "static" / s["image"] for s in load_samples() if (ROOT / "static" / s["image"]).exists()]
+
+
+def generate(cfg, text, attempt_index, backup=False):
     """画像ファイルを作り、(ファイル名, 生成秒数) を返す。
 
+    backup=True（予備モード）：API を使わず、事前に用意した作例ジャケットから1枚を選ぶ。
     失敗時：InputRejected（書き直してもらう）／ GenerationError（もう一度試す）
     """
     started = time.monotonic()
     name = f"{uuid.uuid4().hex}.jpg"
     backend = resolve_backend(cfg)
+
+    if backup:
+        files = backup_images()
+        if files:
+            img = Image.open(random.choice(files)).convert("RGB")
+        else:  # 作例が1枚も無いときは開発用のダミー
+            log.warning("予備モードの作例ジャケットがありません（static/backup/ に置いてください）")
+            img = make_cover_image(None, text, seed=random.randrange(1000), title=cfg["track"]["title"])
+        _save_jpeg(img, IMAGES_DIR / name)
+        return name, time.monotonic() - started
 
     if backend == "dummy":
         time.sleep(cfg["generation"]["dummy_delay_sec"])

@@ -75,6 +75,7 @@ MIGRATIONS = [
     ("covers", "takeaway_at", "text"),              # 持ち帰り方法を選んだ日時
     ("covers", "card_synced", "integer not null default 0"),  # カードのひも付けを Supabase に送ったか
     ("covers", "remote_image_url", "text"),         # Supabase Storage の公開URL
+    ("sessions", "abort_reason", "text"),           # 中止の理由：home（D8で中止）/ timeout（無操作）/ admin（/admin でリセット）
 ]
 
 
@@ -114,10 +115,10 @@ class Database:
     def session_started(self, session_id):
         self.conn.execute("insert into sessions (id, started_at) values (?, ?)", (session_id, now_iso()))
 
-    def session_aborted(self, session_id):
-        # 中止：入力文や回数は残さず、「中止された」事実と時間だけ
-        self.conn.execute("update sessions set ended_at = ?, outcome = 'aborted' where id = ?",
-                          (now_iso(), session_id))
+    def session_aborted(self, session_id, reason=None):
+        # 中止：入力文や回数は残さず、「中止された」事実・時間・理由だけ
+        self.conn.execute("update sessions set ended_at = ?, outcome = 'aborted', abort_reason = ? where id = ?",
+                          (now_iso(), reason, session_id))
 
     # ------------------------------------------------------------ 確定
     def confirm_cover(self, cover, session):
@@ -167,6 +168,27 @@ class Database:
             """select count(*) filter (where synced = 0),
                       count(*) filter (where card_no is not null and card_synced = 0) from covers""").fetchone()
         return {"covers_pending": r[0], "cards_pending": r[1]}
+
+    def set_hidden(self, jacket_no, hidden):
+        # synced を戻して、Supabase の covers.hidden も送り直す
+        self.conn.execute("update covers set hidden = ?, synced = 0 where jacket_no = ?", (int(hidden), jacket_no))
+
+    def today_stats(self):
+        today = datetime.now().astimezone().date().isoformat()
+        r = self.conn.execute(
+            """select count(*),
+                      count(*) filter (where outcome = 'confirmed'),
+                      count(*) filter (where outcome = 'aborted')
+               from sessions where substr(started_at, 1, 10) = ?""", (today,)).fetchone()
+        t = self.conn.execute(
+            """select count(*) filter (where takeaway = 'get_it_now'),
+                      count(*) filter (where takeaway = 'take_it_home'),
+                      count(*) filter (where backup_mode = 1)
+               from covers where substr(confirmed_at, 1, 10) = ?""", (today,)).fetchone()
+        plays = self.conn.execute("select count(*) from gallery_plays where substr(started_at, 1, 10) = ?",
+                                  (today,)).fetchone()[0]
+        return {"date": today, "sessions": r[0], "confirmed": r[1], "aborted": r[2],
+                "get_it_now": t[0], "take_it_home": t[1], "backup": t[2], "gallery_plays": plays}
 
     # ------------------------------------------------------------ ギャラリー
     def gallery_play_started(self, jacket_no):

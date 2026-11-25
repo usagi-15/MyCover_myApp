@@ -2,6 +2,7 @@
 
 確定済みジャケットと研究用の記録は SQLite（mycover/db.py）に保存し、起動時に読み込む。
 """
+import json
 import logging
 import secrets
 import threading
@@ -33,6 +34,7 @@ class Exhibit:
         self.next_card_no = cfg["numbering"]["card_start_no"] if last_card is None else last_card + 1
         self.gen_times = []       # 直近の生成時間（秒）
         self.gallery_play_id = None
+        self.backup_mode = self._load_runtime().get("backup_mode", bool(cfg["generation"].get("backup_mode", False)))
         self._cleanup_images()
         self.sync = SyncWorker(cfg, self.db, self.lock, generator.IMAGES_DIR)
         self._reset_desk()
@@ -54,6 +56,21 @@ class Exhibit:
             "card_no": r["card_no"],
             "hidden": bool(r["hidden"]),
         }
+
+    # 予備モードなど、/admin で切り替えて再起動後も残したい値（data/runtime.json）
+    RUNTIME_PATH = generator.IMAGES_DIR.parent / "runtime.json"
+
+    def _load_runtime(self):
+        try:
+            with open(self.RUNTIME_PATH, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return {}
+
+    def _save_runtime(self):
+        self.RUNTIME_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.RUNTIME_PATH, "w", encoding="utf-8") as f:
+            json.dump({"backup_mode": self.backup_mode}, f)
 
     def _cleanup_images(self):
         """確定済みジャケット以外の画像（前回の途中終了で残ったもの）を消す。"""
@@ -109,10 +126,10 @@ class Exhibit:
         est = float(g["initial_estimate_sec"]) if not recent else sum(recent) / len(recent)
         return max(est, float(g["min_pressing_sec"]))
 
-    def _discard_session(self):
-        """中止：入力・生成画像・状態を完全に消去する（記録には「中止された」事実と時間だけ残す）。"""
+    def _discard_session(self, reason):
+        """中止：入力・生成画像・状態を完全に消去する（記録には「中止された」事実・時間・理由だけ残す）。"""
         if self.session:
-            self.db.session_aborted(self.session["id"])
+            self.db.session_aborted(self.session["id"], reason)
             for att in self.session["attempts"]:
                 if att.get("image"):
                     generator.delete_image(att["image"])
@@ -287,7 +304,7 @@ class Exhibit:
     def _act_abort_yes(self, _):
         if self.desk["modal"] != "abort":
             raise ActionError("no abort dialog")
-        self._discard_session()
+        self._discard_session("home")
         self._reset_desk()
         self._stop_audio()
 
@@ -319,11 +336,12 @@ class Exhibit:
         s["gen_started_at"] = time.time()
         s["estimate_sec"] = self._estimate()
         self.desk = {"screen": "D4", "modal": None}
-        threading.Thread(target=self._run_generation, args=(s, text), daemon=True).start()
+        backup = self.backup_mode
+        threading.Thread(target=self._run_generation, args=(s, text, backup), daemon=True).start()
 
-    def _run_generation(self, s, text):
+    def _run_generation(self, s, text, backup=False):
         try:
-            image, sec = generator.generate(self.cfg, text, len(s["attempts"]))
+            image, sec = generator.generate(self.cfg, text, len(s["attempts"]), backup=backup)
             error = rejected = None
         except generator.InputRejected as e:
             image, sec, error, rejected = None, None, None, str(e)
@@ -357,8 +375,10 @@ class Exhibit:
                 s["status"] = "error"
                 s["error"] = error
                 return
-            self.gen_times.append(sec)
-            s["attempts"].append({"input": text, "image": image, "gen_sec": sec, "created_at": now_iso()})
+            if not backup:
+                self.gen_times.append(sec)
+            s["attempts"].append({"input": text, "image": image, "gen_sec": sec, "created_at": now_iso(),
+                                  "backup": backup})
             s["status"] = "done"
             if self.desk["screen"] == "D4":
                 self.desk["screen"] = "D5"
@@ -396,6 +416,7 @@ class Exhibit:
             "takeaway": None,
             "card_no": None,
             "hidden": False,
+            "backup_mode": bool(last.get("backup")),  # 予備モードの作例で確定したか（研究データ用）
         }
         self.db.confirm_cover(cover, s)  # 失敗したら例外（画面は D5 のまま）
         # 確定しなかった画像は消す
@@ -461,3 +482,84 @@ class Exhibit:
         self._play_on_display(cover, mode="gallery")
         self.gallery_play_id = self.db.gallery_play_started(cover["jacket_no"])
         self.db.gallery_event(self.gallery_play_id, "select", 0.0)
+
+    # ------------------------------------------------------------ 無操作タイムアウト（desk が判定して呼ぶ）
+    # D2・D6・D7a・D7b・D9・D10：ホームへ戻す。D3〜D5：「まだ続けますか？」を出す
+    TIMEOUT_HOME_SCREENS = ("D2", "D6", "D7a", "D7b", "D9", "D10")
+
+    def _act_idle_timeout(self, _):
+        screen = self.desk["screen"]
+        if screen in self.TIMEOUT_HOME_SCREENS:
+            if screen == "D10":
+                self._end_gallery_play("timeout")
+                self._show_s1()
+            self._reset_desk()
+            if self.audio["owner"] == "desk":
+                self._stop_audio()
+        elif screen in MAKING_SCREENS:
+            if self.session and self.session["status"] == "generating":
+                return  # 生成を待っている間は聞かない
+            self.desk["modal"] = "idle"
+
+    def _act_idle_continue(self, _):
+        if self.desk["modal"] == "idle":
+            self.desk["modal"] = None
+
+    def _act_idle_abort(self, _):
+        """「まだ続けますか？」に答えがなかった：中止扱いでホームへ。"""
+        if self.desk["modal"] != "idle":
+            raise ActionError("no idle dialog")
+        self._discard_session("timeout")
+        self._reset_desk()
+        self._stop_audio()
+
+    # ------------------------------------------------------------ /admin
+    def admin_status(self):
+        with self.lock:
+            stats = self.db.today_stats()
+            return {
+                "desk_screen": self.desk["screen"],
+                "display_screen": self.display["screen"],
+                "in_session": self.session is not None,
+                "backup_mode": self.backup_mode,
+                "generator_backend": generator.resolve_backend(self.cfg),
+                "cards_left": self.cards_left(),
+                "next_card_no": self.next_card_no,
+                "next_jacket_no": self.next_jacket_no,
+                "covers_total": len(self.covers),
+                "today": stats,
+                "sync": {"enabled": self.sync.client.enabled, **self.db.sync_status(),
+                         "last_error": self.sync.last_error},
+                "covers": [{"jacket_no": c["jacket_no"], "image_url": c["image_url"], "input": c["input"],
+                            "hidden": c.get("hidden", False), "takeaway": c.get("takeaway"),
+                            "card_no": c.get("card_no")} for c in reversed(self.covers)],
+            }
+
+    def admin_reset(self):
+        """画面が止まったときなど：体験を中断（中止扱い）し、机をホーム・大型モニターを S1 に戻す。記録は消さない。"""
+        with self.lock:
+            if self.session:
+                self._discard_session("admin")
+            self._end_gallery_play("admin")
+            self._reset_desk()
+            self.display = {"screen": "S1", "cover": None, "mode": None}
+            self._stop_audio()
+
+    def admin_set_backup_mode(self, on):
+        with self.lock:
+            self.backup_mode = bool(on)
+            self._save_runtime()
+            log.info("予備モード：%s", "オン" if self.backup_mode else "オフ")
+
+    def admin_set_hidden(self, jacket_no, hidden):
+        with self.lock:
+            cover = self._cover_by_no(int(jacket_no))
+            cover["hidden"] = bool(hidden)
+            self.db.set_hidden(cover["jacket_no"], bool(hidden))  # Supabase にも送り直す
+            self.covers_rev += 1
+            if hidden and (self.display.get("cover") or {}).get("jacket_no") == cover["jacket_no"] \
+                    and self.display["mode"] == "gallery":
+                self._show_s1()
+                if self.desk["screen"] == "D10":
+                    self.desk = {"screen": "D9", "modal": None}
+        self.sync.kick()

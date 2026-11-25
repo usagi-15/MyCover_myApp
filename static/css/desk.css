@@ -210,3 +210,8 @@
 
 .choice:disabled { opacity: .35; cursor: default; }
 .choice .sold-out { margin-top: -10px; }
+
+/* D7a・D7b：公式ジャケット・MV の公開日（スマホ用ページの特設エリアと同じ告知） */
+.release-note { font-size: 18px; line-height: 1.8; margin: -30px 0 34px; padding-left: 14px; border-left: 1px solid var(--line); white-space: pre-line; }
+.release-note:empty { display: none; }
+#D7a .steps { margin-bottom: 50px; }

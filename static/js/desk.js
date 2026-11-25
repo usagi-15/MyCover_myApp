@@ -10,6 +10,10 @@ let coversRev = -1;
 let covers = [];
 let exIndex = 0;
 let dragging = null;        // ドラッグ中の再生バー
+let lastModal = null;
+let lastActivity = Date.now();  // 最後にキーボード・マウスが操作された時刻
+let idleAskedAt = 0;            // 「まだ続けますか？」を出した時刻
+let idleSent = false;
 
 $$(".track-title").forEach((el) => (el.textContent = CFG.track.title));
 
@@ -107,6 +111,9 @@ function render(state) {
   $("#menu").classList.toggle("hidden", modal !== "menu");
   $("#menu-home").classList.toggle("hidden", screen === "D1");
   $("#abort").classList.toggle("hidden", modal !== "abort");
+  $("#idle").classList.toggle("hidden", modal !== "idle");
+  if (modal === "idle" && lastModal !== "idle") { idleAskedAt = Date.now(); idleSent = false; }
+  lastModal = modal;
 
   const s = state.session;
   if (changed && screen === "D3") {
@@ -169,6 +176,44 @@ $("#gallery-grid").addEventListener("click", (e) => {
   const item = e.target.closest("[data-jacket]");
   if (item) act("gallery_select", { jacket_no: +item.dataset.jacket });
 });
+
+// ------------------------------------------------------------ 無操作タイムアウト
+// 操作が timeouts.idle_sec 秒ないと、サーバーに知らせる（ホームへ戻す／「まだ続けますか？」を出す）
+["pointerdown", "pointermove", "keydown", "wheel", "input"].forEach((ev) =>
+  document.addEventListener(ev, () => { lastActivity = Date.now(); idleSent = false; }, { passive: true }));
+
+const TIMEOUT_SCREENS = ["D2", "D3", "D4", "D5", "D6", "D7a", "D7b", "D9", "D10"];
+function checkIdle() {
+  const st = current;
+  if (!st) return;
+  const t = CFG.timeouts;
+  const now = Date.now();
+  if (st.desk.modal === "idle") {
+    const remain = Math.max(0, Math.ceil(t.confirm_sec - (now - idleAskedAt) / 1000));
+    $("#idle-remain").textContent = remain;
+    if (remain <= 0 && !idleSent) { idleSent = true; act("idle_abort"); }
+    return;
+  }
+  if (st.session?.status === "generating") { lastActivity = now; return; } // 生成を待つ間は数えない
+  if (!TIMEOUT_SCREENS.includes(st.desk.screen) || st.desk.modal === "abort") return;
+  if (now - lastActivity > t.idle_sec * 1000 && !idleSent) {
+    idleSent = true;
+    act("idle_timeout");
+  }
+}
+setInterval(checkIdle, 500);
+
+// D7a・D7b：公式ジャケット・MV の公開日（config.json の release）
+function releaseText() {
+  const r = CFG.release;
+  const fmt = (iso) => {
+    if (!iso) return "近日公開";
+    const d = new Date(new Date(iso).getTime() + 9 * 3600e3); // 日本時間で表示
+    return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${"日月火水木金土"[d.getUTCDay()]}）公開`;
+  };
+  return `公式ジャケット　${fmt(r.official_jacket_at)}\nMV　${fmt(r.mv_at)}\nページで「あなた盤」と「公式盤」を見比べられます`;
+}
+$$(".release-note").forEach((el) => { el.textContent = releaseText(); });
 
 // 毎フレーム：再生バーとカウントダウン
 function frame() {

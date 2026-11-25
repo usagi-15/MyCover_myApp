@@ -160,6 +160,7 @@
             <li>表示されたジャケットを長押しすると、画像として保存できます</li>
             <li>「楽曲をダウンロード」で楽曲ファイルとして保存できます</li>
           </ol>
+          <p class="release-note"></p>
           <button class="btn primary" data-action="finish">終了してホームに戻る</button>
         </div>
       </div>
@@ -176,6 +177,7 @@
         <div class="d7-right">
           <h2><span id="card-no-head"></span> の<br>カードをお取りください</h2>
           <p class="desc">カードに記載の QR コード /URL からいつでも<br>あなたのつくったジャケットと楽曲のダウンロードページにアクセスできます</p>
+          <p class="release-note"></p>
           <button class="btn primary" data-action="finish">終了してホームに戻る</button>
         </div>
       </div>
@@ -231,6 +233,18 @@
       <button data-action="about"><span class="m-title">About &amp; How To Use</span><span class="m-desc">作品概要・操作方法</span></button>
       <button data-action="home" id="menu-home"><span class="m-title small">Home</span><span class="m-desc">ホームに戻る</span></button>
     </nav>
+  </div>
+
+  <!-- 無操作のとき（D3〜D5）：まだ続けますか？ -->
+  <div id="idle" class="modal-wrap hidden">
+    <div class="modal">
+      <h2>まだ続けますか？</h2>
+      <p>操作がないため、あと <span id="idle-remain">20</span> 秒でジャケットの作成を中止してホームに戻ります。</p>
+      <div class="row">
+        <button class="btn" data-action="idle_abort">やめる</button>
+        <button class="btn primary" data-action="idle_continue">つづける</button>
+      </div>
+    </div>
   </div>
 
   <!-- D8 中止の確認 p.11 -->

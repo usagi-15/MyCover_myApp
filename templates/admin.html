@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Cover — スタッフ用</title>
+<style>
+  :root { --bg: #06061f; --fg: #fff; --muted: rgba(255,255,255,.65); --line: rgba(255,255,255,.3); --warn: #ffb4b4; --ok: #b9f0c8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 "Yu Gothic UI", "Meiryo", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-family: "Yu Mincho", serif; font-weight: 400; font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .stat { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .stat b { display: block; font-size: 26px; font-weight: 500; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  button { font: inherit; color: var(--fg); background: none; border: 1px solid var(--fg); border-radius: 6px; padding: 10px 18px; cursor: pointer; min-height: 44px; }
+  button.primary { background: var(--fg); color: var(--bg); }
+  button.danger { border-color: var(--warn); color: var(--warn); }
+  .on { color: var(--ok); } .off { color: var(--muted); } .warn { color: var(--warn); }
+  .covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+  .cover { border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .cover img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+  .cover.hidden img { opacity: .25; }
+  .cover p { margin: 6px 0; font-size: 12px; word-break: break-all; }
+  .cover button { width: 100%; padding: 6px; min-height: 36px; font-size: 13px; }
+  dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--fg); border-radius: 12px; padding: 24px; max-width: 460px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+</style>
+</head>
+<body>
+<main>
+  <h1>My Cover スタッフ用</h1>
+  <p class="muted">展示PCからだけ開けます（http://127.0.0.1:5000/admin）。表示は数秒ごとに更新されます。</p>
+
+  <h2>いまの状態</h2>
+  <div class="stats" id="stats"></div>
+
+  <h2>操作</h2>
+  <div class="row">
+    <button class="danger" id="btn-reset">状態のリセット</button>
+    <span class="muted">画面が止まったときに。体験中の人がいれば中止扱いにして、机をホーム・大型モニターをギャラリーに戻します（記録は消えません）。</span>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button id="btn-backup"></button>
+    <span class="muted">OpenAI の障害や回線断が続くときにオン。画像を生成せず、<code>static/backup/</code> の作例ジャケットで体験を続けます（記録に「予備モード」と残ります）。</span>
+  </div>
+
+  <h2>ジャケット（新しい順）</h2>
+  <p class="muted">「非表示にする」と、ギャラリー（机・大型モニター）とスマホ用ページに出なくなります。</p>
+  <div class="covers" id="covers"></div>
+</main>
+
+<dialog id="confirm">
+  <p id="confirm-msg"></p>
+  <div class="row" style="justify-content:flex-end">
+    <button id="confirm-no">やめる</button>
+    <button class="primary" id="confirm-yes">実行する</button>
+  </div>
+</dialog>
+
+<script>
+{
+  const $ = (s) => document.querySelector(s);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let last = null;
+  let coversKey = "";
+
+  async function post(action, body) {
+    const res = await fetch(`/admin/api/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    if (res.ok) render(await res.json());
+  }
+
+  function ask(message) {
+    return new Promise((resolve) => {
+      $("#confirm-msg").textContent = message;
+      const d = $("#confirm");
+      const done = (v) => { d.close(); $("#confirm-yes").onclick = $("#confirm-no").onclick = null; resolve(v); };
+      $("#confirm-yes").onclick = () => done(true);
+      $("#confirm-no").onclick = () => done(false);
+      d.showModal();
+    });
+  }
+
+  function render(s) {
+    last = s;
+    const t = s.today;
+    const syncText = !s.sync.enabled ? "未設定" : (s.sync.covers_pending || s.sync.cards_pending) ? `送信待ち ${s.sync.covers_pending + s.sync.cards_pending}` : "送信済み";
+    const stats = [
+      ["今日の体験", t.sessions], ["今日の確定", t.confirmed], ["今日の中止", t.aborted],
+      ["Get It Now", t.get_it_now], ["Take It Home", t.take_it_home], ["ギャラリー再生", t.gallery_plays],
+      ["カード残り", `${s.cards_left} 枚`], ["次のカード", `No.${String(s.next_card_no).padStart(4, "0")}`],
+      ["次のジャケット", `No.${String(s.next_jacket_no).padStart(4, "0")}`], ["ジャケット合計", s.covers_total],
+      ["画像生成", s.backup_mode ? "予備モード" : s.generator_backend], ["クラウド送信", syncText],
+      ["机の画面", s.desk_screen + (s.in_session ? "（体験中）" : "")], ["大型モニター", s.display_screen],
+    ];
+    $("#stats").innerHTML = stats.map(([k, v]) => `<div class="stat"><span class="muted">${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
+    const b = $("#btn-backup");
+    b.textContent = s.backup_mode ? "予備モード：オン（押すとオフ）" : "予備モード：オフ（押すとオン）";
+    b.className = s.backup_mode ? "primary" : "";
+    if (s.sync.last_error) $("#stats").insertAdjacentHTML("beforeend", `<div class="stat warn" style="grid-column:1/-1"><span>クラウド送信のエラー</span><div>${esc(s.sync.last_error)}</div></div>`);
+
+    const key = JSON.stringify(s.covers.map((c) => [c.jacket_no, c.hidden]));
+    if (key !== coversKey) {
+      coversKey = key;
+      $("#covers").innerHTML = s.covers.map((c) => `
+        <div class="cover${c.hidden ? " hidden" : ""}">
+          <img src="${esc(c.image_url)}" alt="" loading="lazy">
+          <p><b>No.${esc(String(c.jacket_no).padStart(4, "0"))}</b>${c.card_no ? `（カード No.${esc(String(c.card_no).padStart(4, "0"))}）` : ""}</p>
+          <p class="muted">${esc(c.input)}</p>
+          <button data-no="${esc(c.jacket_no)}" data-hidden="${c.hidden ? 1 : 0}">${c.hidden ? "表示に戻す" : "非表示にする"}</button>
+        </div>`).join("") || '<p class="muted">まだありません</p>';
+    }
+  }
+
+  $("#covers").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-no]");
+    if (!btn) return;
+    const hide = btn.dataset.hidden !== "1";
+    if (hide && !(await ask(`No.${btn.dataset.no.padStart(4, "0")} を非表示にしますか？`))) return;
+    post("hide", { jacket_no: +btn.dataset.no, hidden: hide });
+  });
+  $("#btn-reset").addEventListener("click", async () => {
+    if (await ask("状態をリセットしますか？ 体験中の人がいれば、その体験は中止になります。")) post("reset");
+  });
+  $("#btn-backup").addEventListener("click", async () => {
+    const on = !last?.backup_mode;
+    if (await ask(on ? "予備モードをオンにしますか？ 画像を生成せず、作例ジャケットを使います。" : "予備モードをオフにして、OpenAI での生成に戻しますか？")) post("backup", { on });
+  });
+
+  async function poll() {
+    try { const res = await fetch("/admin/api/status"); if (res.ok) render(await res.json()); } catch (_) { /* 再試行 */ }
+    setTimeout(poll, 3000);
+  }
+  poll();
+}
+</script>
+</body>
+</html>

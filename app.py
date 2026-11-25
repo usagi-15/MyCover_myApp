@@ -34,6 +34,8 @@ def client_config():
         "numbering": cfg["numbering"],
         "max_chars": cfg["input"]["max_chars"],
         "highlight_new_sec": cfg["display"]["highlight_new_sec"],
+        "timeouts": cfg["timeouts"],
+        "release": {k: v for k, v in cfg["release"].items() if not k.startswith("_")},
         "samples": samples,
     }
 
@@ -114,6 +116,40 @@ def api_audio(action):
     except ActionError as e:
         return jsonify({"ok": False, "error": str(e)}), 409
     return jsonify({"ok": True, "state": exhibit.snapshot()})
+
+
+# ------------------------------------------------------------ /admin（展示PCの localhost からのみ）
+@app.before_request
+def admin_localhost_only():
+    if request.path.startswith("/admin") and request.remote_addr not in ("127.0.0.1", "::1"):
+        abort(403)
+
+
+@app.get("/admin")
+def admin_page():
+    return render_template("admin.html")
+
+
+@app.get("/admin/api/status")
+def admin_status():
+    return jsonify(exhibit.admin_status())
+
+
+@app.post("/admin/api/<action>")
+def admin_action(action):
+    body = request.get_json(silent=True) or {}
+    if action == "reset":
+        exhibit.admin_reset()
+    elif action == "backup":
+        exhibit.admin_set_backup_mode(body.get("on"))
+    elif action == "hide":
+        try:
+            exhibit.admin_set_hidden(body["jacket_no"], body.get("hidden", True))
+        except (KeyError, ActionError):
+            abort(400)
+    else:
+        abort(404)
+    return jsonify(exhibit.admin_status())
 
 
 @app.get("/api/qr")
